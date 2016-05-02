@@ -1,0 +1,86 @@
+{{velocity wiki=false }} 
+#*
+    this script provides a serverside merge API which allows realtime sessions
+    to peacefully coexist with simultaneous non-realtime sessions.
+    It expects the client to post its current realtime session content, the
+    name of the relevant document, and the version of its latest common
+    ancestor (the last known savepoint)
+*#
+##
+#set ($mymap = {})
+#set ($mymap["error"] = false)
+#set($CR = $util.decodeURI("%0D"))
+##
+#if($request.version)
+##
+## the version the client expects to be its latest common ancestor
+    #set ($ancestorVersion = $request.get('version'))
+## the name of the document
+    #set ($documentName = $request.get('document'))
+## the realtime editor's content
+    #set ($rtLiveContent = $request.get('content'))
+##
+    #set ($latestDocument = $xwiki.getDocument($documentName))
+    #set ($latestContent = $latestDocument.getContent())
+    #set ($ancestorDocument = $latestDocument.getDocumentRevision($ancestorVersion))
+    #set ($ancestorContent = $ancestorDocument.getContent())
+##
+    #set ($mymap["latestVersion"] = $ancestorVersion)
+    #set ($mymap["previousVersionContent"] = $latestDocument.getContent())
+##
+    ## if O == A
+    #if($ancestorContent == $latestContent)
+        #set ($mymap["content"] = $rtLiveContent)
+        #set ($mymap["merged"] = false)
+        #set ($mymap["conflicts"] = false)
+##
+        #if ($rtLiveContent != $latestContent)
+            #set ($mymap["saveRequired"] = true)
+        #else
+            #set ($mymap["saveRequired"] = false)
+        #end
+    ## if B == A
+    #elseif($rtLiveContent == $latestContent)
+        #set ($mymap["content"] = $rtLiveContent)
+        #set ($mymap["merged"] = false)
+        #set ($mymap["conflicts"] = false)
+        #set ($mymap["saveRequired"] = false)
+##
+    ## otherwise
+    #else
+        #set ($placeholder = " ${escapetool.getNewline()} ")
+##
+        #set ($ancestorContentReplaced = $ancestorContent.replace($CR,"").replace($escapetool.getNewline(), $placeholder))
+        #set ($splitRevision = $ancestorContentReplaced.split(" "))
+##
+        #set ($liveContentReplaced = $rtLiveContent.replace($CR,"").replace($escapetool.getNewline(), $placeholder))
+        #set ($splitLiveContent = $liveContentReplaced.split(" "))
+##
+        #set ($latestContentReplaced = $latestContent.replace($CR,"").replace($escapetool.getNewline(), $placeholder))
+        #set ($splitActualContent = $latestContentReplaced.split(" "))
+##
+## convert token sequences into the datatype diff.merge expects
+        #set ($OList = [])
+        #foreach($o in $splitRevision) #set($discard = $OList.add($o)) #end
+##
+        #set ($BList = [])
+        #foreach($b in $splitLiveContent) #set($discard = $BList.add($b)) #end
+##
+        #set ($AList = [])
+        #foreach($a in $splitActualContent) #set($discard = $AList.add($a)) #end
+##
+##
+        #set ($merged=$services.diff.merge( $OList, $AList, $BList, null))
+##
+        #set ($final = $stringtool.join($merged.getMerged(), " ").replace($placeholder, $escapetool.getNewline()))
+##
+        #set ($mymap["content"] = $final)
+        #set ($mymap["merged"] = true)
+        #set ($mymap["conflicts"] = $merged.getLog())
+        #set ($mymap["saveRequired"] = true)
+##
+    #end
+#end
+##
+$jsontool.serialize($mymap)
+{{/velocity}}
