@@ -1,4 +1,4 @@
-{{velocity wiki=false }} 
+{{velocity wiki=false}}
 #*
     this script provides a serverside merge API which allows realtime sessions
     to peacefully coexist with simultaneous non-realtime sessions.
@@ -24,6 +24,11 @@
     #set ($latestContent = $latestDocument.getContent())
     #set ($ancestorDocument = $latestDocument.getDocumentRevision($ancestorVersion))
     #set ($ancestorContent = $ancestorDocument.getContent())
+##
+    #if ("$!{request.convertHTML}" == "1")
+        #set ($xdom = $services.rendering.parse($rtLiveContent, 'html/4.01'))
+        #set ($rtLiveContent = $services.rendering.render($xdom, $latestDocument.syntax.toIdString()))
+    #end
 ##
     #set ($mymap["latestVersion"] = $ancestorVersion)
     #set ($mymap["previousVersionContent"] = $latestDocument.getContent())

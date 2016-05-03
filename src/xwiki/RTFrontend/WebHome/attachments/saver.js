@@ -20,13 +20,15 @@ define([
 
     var now = function () { return (new Date()).getTime(); };
 
-    
+
 
     var Saver = {};
 
     var mainConfig = Saver.mainConfig = {};
 
     var ErrorBox;
+    var getTextValue, setTextValue, isHTML;
+
     var configure = Saver.configure = function (config, language) {
         mainConfig.ajaxMergeUrl =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
         mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
@@ -98,6 +100,9 @@ define([
         var stats=getDocumentStatistics();
 
         stats.content = content;
+        if (isHTML) {
+          stats.convertHTML = 1;
+        }
 
         console.log("Posting with the following stats");
         console.log(stats);
@@ -107,7 +112,6 @@ define([
             method: 'POST',
             success: function (data) {
                 try {
-                    console.log(data);
                     var merge=JSON.parse(data);
 
                     window.ansuz_merge = merge;
@@ -160,7 +164,6 @@ define([
             } else if (out) {
                 debug("Triggering lastSaved refresh on remote clients");
                 lastSaved.version = out.version;
-                console.log(lastSaved);
                 saveMessage(webChannel, channel, lastSaved.version);
                 cb && cb(out);
             } else {
@@ -271,10 +274,8 @@ define([
         lastSaved.wasEditedLocally = condition;
     };
 
-    var getTextValue;
+
     var onMessage = function (msg, sender) {
-        console.log(msg);
-        console.log(sender);
         // set a flag so any concurrent processes know to abort
         lastSaved.receivedISAVE = true;
 
@@ -348,13 +349,14 @@ define([
             this is deprecated from realtime-input*/
 
         getTextValue = config.getTextValue || null;
-        var setTextValue = config.setTextValue;
+        setTextValue = config.setTextValue || null;
+        isHTML = config.isHTML || false;
         var messages = config.messages;
         var language = mainConfig.language;
 
         lastSaved.time = now();
         var mergeDialogCurrentlyDisplayed = false;
-        
+
         var onOpen = function(chan, network) {
             // originally implemented as part of 'saveRoutine', abstracted logic
             // such that the merge/save algorithm can terminate with different
@@ -499,14 +501,14 @@ define([
                                         method: 'GET',
                                         dataType: 'json',
                                         success: function (data) {
-                                            setTextValue(data.content);
-                                            //socket.realtime.bumpSharejs();//TODO config.onLocal or remote?
-
-                                            debug("Overwrote the realtime session's content with the latest saved state");
-                                            bumpVersion(chan, channel, function () {
-                                                lastSaved.mergeMessage('merge overwrite',[]);
+                                            setTextValue(data.content, function() {
+                                                debug("Overwrote the realtime session's content with the latest saved state");
+                                                bumpVersion(chan, channel, function () {
+                                                    lastSaved.mergeMessage('merge overwrite',[]);
+                                                });
+                                                continuation(andThen);
                                             });
-                                            continuation(andThen);
+
                                         },
                                         error: function (err) {
                                             warn("Encountered an error while fetching remote content");
@@ -545,7 +547,7 @@ define([
                                 }
 
                                 // there were no errors or local changes push to the textarea
-                                setTextValue(toSave);
+                                setTextValue(toSave, function() {});
                                 // bump sharejs to force propogation. only if changed
                                 //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
                                 // TODO show message informing the user
@@ -567,7 +569,6 @@ define([
                 // name this flag for readability
                 var force = true;
                 saveRoutine(function (e, shouldSave) {
-                    var toSave = getTextValue();
                     if (e) {
                         warn(e);
                         //return;
@@ -576,7 +577,7 @@ define([
                     lastSaved.shouldRedirect = cont;
                     // fire save event
                     document.fire('xwiki:actions:save', {
-                        form: $('#edit')[0],
+                        form: $('#'+config.formId)[0],
                         continue: 1
                     });
                 }, force);
@@ -690,16 +691,15 @@ define([
             }; // end check
 
             check();
-            
+
             network.on('disconnect', function (evt) {
                 clearTimeout(to);
             });
         }
-        
+
         Netflux.connect(webSocketUrl).then(function(net){
             net.join(channel).then(function(chan) {
                 chan.on('message', onMessage);
-                console.log('joined the events');
                 onOpen(chan, net);
             }, function(err) {
                 warn(err);
@@ -712,6 +712,6 @@ define([
     Saver.setLastSavedContent = function (content) {
         lastSaved.content = content;
     };
-    
+
     return Saver;
 });
