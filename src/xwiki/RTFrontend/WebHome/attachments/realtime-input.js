@@ -221,7 +221,7 @@ define([
                     realtime: realtime,
                     getLag: network.getLag,
                     userList: userList,
-
+                    network: network,
                     // channel
                     channel: channel
                 });

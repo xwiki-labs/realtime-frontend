@@ -1,5 +1,5 @@
 /*
-    This file defines functions which are used in RTWIKI, and address components
+    This file defines functions which are used in RTWiki/RTWysiwyg, and address components
     of the user interface.
 */
 define([
@@ -10,13 +10,13 @@ define([
     var debug = function (x) { console.log(x); };
 
     var uid = Interface.uid = function () {
-        return 'rtwiki-uid-' + String(Math.random()).substring(2);
+        return 'realtime-uid-' + String(Math.random()).substring(2);
     };
 
     var setStyle = Interface.setStyle = function () {
         $('head').append([
             '<style>',
-            '.rtwiki-merge {',
+            '.realtime-merge {',
             '    float: left',
             '}',
             '#secret-merge {',
@@ -31,9 +31,9 @@ define([
 
     var createAllowRealtimeCheckbox = Interface.createAllowRealtimeCheckbox = function (id, checked, message) {
         $('#mainEditArea .buttons').append(
-            '<div class="rtwiki-allow-outerdiv">' +
-                '<label class="rtwiki-allow-label" for="' + id + '">' +
-                    '<input type="checkbox" class="rtwiki-allow" id="' + id + '" ' +
+            '<div class="realtime-allow-outerdiv">' +
+                '<label class="realtime-allow-label" for="' + id + '">' +
+                    '<input type="checkbox" class="realtime-allow" id="' + id + '" ' +
                         checked + '" />' +
                     ' ' + message +
                 '</label>' +
@@ -61,7 +61,7 @@ define([
     */
     var createMergeMessageElement = Interface.createMergeMessageElement = function (container, messages) {
         var id = uid();
-        $(container).prepend( '<div class="rtwiki-merge" id="'+id+'"></div>');
+        $(container).prepend( '<div class="realtime-merge" id="'+id+'"></div>');
         var $merges = $('#'+id);
 
         var timeout;

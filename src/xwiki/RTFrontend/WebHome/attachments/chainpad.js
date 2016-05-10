@@ -549,7 +549,7 @@ var Common = require('./Common');
 var Operation = module.exports.Operation = require('./Operation');
 var Patch = require('./Patch');
 var Message = require('./Message');
-var Sha = require('./SHA256');
+var Sha = module.exports.Sha = require('./SHA256');
 
 var ChainPad = {};
 

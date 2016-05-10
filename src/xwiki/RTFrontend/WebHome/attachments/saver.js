@@ -343,10 +343,7 @@ define([
         During this process, a series of checks are made to reduce the number
         of unnecessary saves, as well as the number of unnecessary merges.
     */
-    var createSaver = Saver.create = function (webSocketUrl, channel, realtime, config, demoMode) {
-
-        /*  TODO called from sharejs_textarea
-            this is deprecated from realtime-input*/
+    var createSaver = Saver.create = function (netfluxNetwork, channel, realtime, config, demoMode) {
 
         getTextValue = config.getTextValue || null;
         setTextValue = config.setTextValue || null;
@@ -357,7 +354,8 @@ define([
         lastSaved.time = now();
         var mergeDialogCurrentlyDisplayed = false;
 
-        var onOpen = function(chan, network) {
+        var onOpen = function(chan) {
+            var network = netfluxNetwork;
             // originally implemented as part of 'saveRoutine', abstracted logic
             // such that the merge/save algorithm can terminate with different
             // callbacks for different use cases
@@ -697,14 +695,10 @@ define([
             });
         }
 
-        Netflux.connect(webSocketUrl).then(function(net){
-            net.join(channel).then(function(chan) {
-                chan.on('message', onMessage);
-                onOpen(chan, net);
-            }, function(err) {
-                warn(err);
-            });
-        }, function(err){
+        netfluxNetwork.join(channel).then(function(chan) {
+            chan.on('message', onMessage);
+            onOpen(chan);
+        }, function(err) {
             warn(err);
         });
     }; // END createSaver
