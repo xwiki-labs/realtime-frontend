@@ -195,7 +195,7 @@ define(function() {
             var types = {};
             for (var i=0; i<editorTypes.length; i++) {
                 var editor = editorTypes[i];
-                types[editor] = keys.keys[editor].key;
+                types[editor] = keys[editor].key;
             }
             callback(types);
         });

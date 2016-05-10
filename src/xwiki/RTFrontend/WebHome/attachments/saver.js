@@ -196,6 +196,11 @@ define([
             language: mainConfig.language
         };
 
+        if (isHTML) {
+            data.RequiresHTMLConversion = "content";
+            data.content_syntax = "xwiki/2.1";
+        }
+
         // override default data with configuration
         Object.keys(config).forEach(function (key) {
             data[key] = config[key];
@@ -545,12 +550,13 @@ define([
                                 }
 
                                 // there were no errors or local changes push to the textarea
-                                setTextValue(toSave, function() {});
-                                // bump sharejs to force propogation. only if changed
-                                //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
-                                // TODO show message informing the user
-                                // which versions were merged...
-                                continuation(andThen);
+                                setTextValue(toSave, function() {
+                                  // bump sharejs to force propogation. only if changed
+                                  //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
+                                  // TODO show message informing the user
+                                  // which versions were merged...
+                                  continuation(andThen);
+                                });
                             }
                         }
                     } else {
