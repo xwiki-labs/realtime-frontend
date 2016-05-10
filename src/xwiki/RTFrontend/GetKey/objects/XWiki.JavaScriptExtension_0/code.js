@@ -3,7 +3,7 @@
 #set ($page = "$!request.getParameter('page')")
 #set ($language = "$!request.getParameter('language')")
 #set ($editorTypes = "$!request.getParameter('editorTypes')")
-#if ($wiki == "" || $space == "" || $page == "")
+#if ($wiki == "" || $space == "" || $page == "" || $language == "")
     define({error:"wiki: $wiki, space: $space, page: $page, language: $language, editorTypes: $editorTypes"});
 #else
     #set ($ref = $services.model.createDocumentReference($wiki, $space, $page))
@@ -19,24 +19,34 @@
     #set ($rtform = $services.extension.installed.getInstalledExtensions().toString().contains(":rtform-"))
     #if ($rtform) #set ($discard = $allTypes.add('rtform')) #end
     ##
+    #set ($keys = {})
     #set ($mymap = {})
-    #set ($mymap["error"] = 'none')
     ##
-    ## Get the requested keys : create them if the channel doesn't exist
-    #foreach ($editor in $editorTypes.split(','))
-        #if ($allTypes.contains($editor))
-            #set ($mymap["$editor"] = $services.realtime.getChannelKey($ref, $language, $editor, true))
-        #end
-    #end
-    ##
-    ## Get the other keys for existing channels
-    #foreach ($editor in $collectionstool.disjunction($allTypes, $editorTypes))
-        #if ($allTypes.contains($editor))
-            #set ($key = $services.realtime.getChannelKey($ref, $language, $editor, false))
-            #if("$!key.key" != "")
-                #set ($mymap["$editor"] = $key)
+    ## Check "edit" rights
+    #set ($testKey = $services.realtime.getChannelKey($ref, $language, "events", false))
+    #if ("$!testKey.error" == "EPERM")
+        ## The current user doesn't have edit rights for that document
+        #set ($mymap["error"] = "EPERM")
+    #else
+        ## Get the requested keys : create them if the channel doesn't exist
+        #foreach ($editor in $editorTypes.split(','))
+            #if ($allTypes.contains($editor))
+                #set ($key = $services.realtime.getChannelKey($ref, $language, $editor, true))
+                #if ("$!key.error" == "")
+                    #set ($keys["$editor"] = $key)
+                #end
             #end
         #end
+        ## Get the other keys for existing channels
+        #foreach ($editor in $collectionstool.disjunction($allTypes, $editorTypes))
+            #if ($allTypes.contains($editor))
+                #set ($key = $services.realtime.getChannelKey($ref, $language, $editor, false))
+                #if ("$!key.key" != "" && "$!key.error" == "")
+                    #set ($keys["$editor"] = $key)
+                #end
+            #end
+        #end
+        #set ($mymap["keys"] = $mymap)
     #end
     define($jsontool.serialize($mymap));
 #end

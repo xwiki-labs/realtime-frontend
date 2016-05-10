@@ -171,10 +171,12 @@ define(function() {
     };
 
     var checkSocket = function (callback) {
-        require(['RTFrontend_GetKey'], function(keys) {
+        require(['RTFrontend_GetKey'], function(GetKey) {
             var types = [];
+            if(GetKey.error) { console.error("You don't have permissions to edit that document"); return; }
+            var keys = GetKey.keys;
             for (var editor in keys) {
-                if (editor !== 'error' && editor !== 'events') {
+                if (editor !== 'events') {
                     if (keys[editor].users && keys[editor].users > 0) {
                         types.push(editor);
                     }
@@ -187,11 +189,13 @@ define(function() {
 
     var getKeys = module.getKeys = function(editorTypes, callback) {
         var path = PATHS.RTFrontend_GetKey + encodeURIComponent(editorTypes);
-        require([path], function(keys) {
+        require([path], function(GetKey) {
+            if(GetKey.error) { console.error("You don't have permissions to edit that document"); return; }
+            var keys = GetKey.keys;
             var types = {};
             for (var i=0; i<editorTypes.length; i++) {
                 var editor = editorTypes[i];
-                types[editor] = keys[editor].key;
+                types[editor] = keys.keys[editor].key;
             }
             callback(types);
         });
