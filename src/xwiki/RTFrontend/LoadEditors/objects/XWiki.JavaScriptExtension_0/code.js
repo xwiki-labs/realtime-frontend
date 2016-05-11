@@ -195,6 +195,7 @@ define(function() {
             var types = {};
             for (var i=0; i<editorTypes.length; i++) {
                 var editor = editorTypes[i];
+                if(!keys[editor]) { console.error("Unable to start a realtime session with that editor. Please check that the application is installed from the extension manager."); return; }
                 types[editor] = keys[editor].key;
             }
             callback(types);

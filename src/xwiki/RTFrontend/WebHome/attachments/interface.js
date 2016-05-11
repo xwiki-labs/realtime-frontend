@@ -29,8 +29,27 @@ define([
          ].join(''));
     };
 
+    var LOCALSTORAGE_DISALLOW;
+    var setLocalStorageDisallow = Interface.setLocalStorageDisallow = function (key) {
+        LOCALSTORAGE_DISALLOW = key;
+    };
+
+    var realtimeAllowed = Interface.realtimeAllowed = function (bool) {
+        if (typeof bool === 'undefined') {
+            var disallow = localStorage.getItem(LOCALSTORAGE_DISALLOW);
+            if (disallow) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            localStorage.setItem(LOCALSTORAGE_DISALLOW, bool? '' : 1);
+            return bool;
+        }
+    };
+
     var createAllowRealtimeCheckbox = Interface.createAllowRealtimeCheckbox = function (id, checked, message) {
-        $('#mainEditArea .buttons').append(
+        $('.buttons').append(
             '<div class="realtime-allow-outerdiv">' +
                 '<label class="realtime-allow-label" for="' + id + '">' +
                     '<input type="checkbox" class="realtime-allow" id="' + id + '" ' +

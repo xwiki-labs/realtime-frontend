@@ -11,13 +11,22 @@
     ## $allTypes contains all the existing channel types, depending on the installed extensions.
     ## $editorTypes contains the channel types we intend to join
     ## "events" is a channel type for the autosave "ISAVED" messages
-    #set ($allTypes = ["events_rtwysiwyg", "events_rtwiki", "events_rtform"])
+    #set ($allTypes = [])
     #set ($rtwiki = $services.extension.installed.getInstalledExtensions().toString().contains(":rtwiki-"))
-    #if ($rtwiki) #set ($discard = $allTypes.add('rtwiki')) #end
+    #if ($rtwiki)
+        #set ($discard = $allTypes.add('rtwiki'))
+        #set ($discard = $allTypes.add('events_rtwiki'))
+    #end
     #set ($rtwysiwyg = $services.extension.installed.getInstalledExtensions().toString().contains(":rtwysiwyg-"))
-    #if ($rtwysiwyg) #set ($discard = $allTypes.add('rtwysiwyg')) #end
+    #if ($rtwysiwyg)
+        #set ($discard = $allTypes.add('rtwysiwyg'))
+        #set ($discard = $allTypes.add('events_rtwysiwyg'))
+    #end
     #set ($rtform = $services.extension.installed.getInstalledExtensions().toString().contains(":rtform-"))
-    #if ($rtform) #set ($discard = $allTypes.add('rtform')) #end
+    #if ($rtform)
+        #set ($discard = $allTypes.add('rtform'))
+        #set ($discard = $allTypes.add('events_rtform'))
+    #end
     ##
     #set ($keys = {})
     #set ($mymap = {})
