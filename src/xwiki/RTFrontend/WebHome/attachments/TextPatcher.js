@@ -126,6 +126,7 @@ var create = function(config) {
             if (ctx.getUserDoc() !== newContent) {
                 console.log("Expected that: `ctx.getUserDoc() === newContent`!");
             }
+            else { content = ctx.getUserDoc(); }
             return true;
         }
         return false;
