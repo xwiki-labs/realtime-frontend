@@ -5,6 +5,7 @@ define(function() {
     var USER = "$!xcontext.getUserReference()" || "xwiki:XWiki.XWikiGuest";
     var PRETTY_USER = "$xwiki.getUserName($xcontext.getUser(), false)";
     var DEMO_MODE = "$!request.getParameter('demoMode')" || false;
+    DEMO_MODE = (DEMO_MODE === true || DEMO_MODE === "true") ? true : false;
     var DEFAULT_LANGUAGE = "$xwiki.getXWikiPreference('default_language')";
     var LOCALSTORAGE_DISALLOW = 'realtime-disallow';
     var MESSAGES = {
