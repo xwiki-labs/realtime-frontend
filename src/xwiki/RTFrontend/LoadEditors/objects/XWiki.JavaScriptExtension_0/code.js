@@ -32,7 +32,16 @@ define(function() {
             "and the server had difficulty merging it with your version. "+
             "How would you like to handle this?",
         mergeDialog_keepRealtime: "Overwrite all changes with the current realtime version",
-        mergeDialog_keepRemote:   "Overwrite all changes with the current remote version"
+        mergeDialog_keepRemote:   "Overwrite all changes with the current remote version",
+
+        rtwiki_editor: "Wiki",
+        rtwysiwyg_editor: "WYSIWYG",
+        rtwiki_name: "Realtime Collaborative Plain WikiText Editor",
+        rtwysiwyg_name: "Visual Realtime Collaborative Editor",
+        redirectDialog_prompt: "A realtime session already exists for that document, but it is using the {0} editor. "+
+            "Do you want to join that session?",
+        redirectDialog_joinRT: "Join the realtime {0} session (Recommended)",
+        redirectDialog_stayOffline: "Stay offline (Risks of merge issues)"
     };
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
     var PATHS = {
@@ -62,25 +71,32 @@ define(function() {
 
         RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','jsx')"
     };
+
+    // Prevent users from forcing a realtime editor if another type of realtime session is opened
+    // in the same document. If set to true (not recommended), users are able to choose the editor
+    // they want and when an editor is saving, it checks first if the content need to be merged and
+    // if there is a merge issue.
+    // In case of merge issue, the user has to choose between keeping his content or the content
+    // saved by the remote user.
+    #set ($webhomeRef = $services.model.createDocumentReference("", "RTFrontend", "WebHome"))
+    #set ($multiple = $!xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass').getProperty('allowMultipleEditors').value)
+    var ALLOW_MULTIPLE_EDITORS = #if ("$multiple" != "1") false #else true #end;
+
     // END_VELOCITY
 
-    var checkEnvironment = module.checkEnvironment = function() {
-        if (!WEBSOCKET_URL) {
-            console.log("The provided websocketURL was empty, aborting attempt to" +
-                "configure a realtime session.");
-            return false;
-        }
+    var multiple = (!ALLOW_MULTIPLE_EDITORS) ? "&multiple=0" : "";
 
-        if (!window.XWiki) {
-            console.log("WARNING: XWiki js object not defined.");
-            return false;
-        }
-
-        // Not in edit mode?
-        if (!DEMO_MODE && window.XWiki.contextaction !== 'edit') { return false; }
-
-        return true;
+    if (!WEBSOCKET_URL) {
+        console.log("The provided websocketURL was empty, aborting attempt to" +
+            "configure a realtime session.");
+        return false;
     }
+    if (!window.XWiki) {
+        console.log("WARNING: XWiki js object not defined.");
+        return false;
+    }
+    // Not in edit mode?
+    if (!DEMO_MODE && window.XWiki.contextaction !== 'edit') { return false; }
 
     var getParameterByName = function (name, url) {
         if (!url) url = window.location.href;
@@ -90,7 +106,7 @@ define(function() {
         if (!results) return null;
         if (!results[2]) return '';
         return decodeURIComponent(results[2].replace(/\+/g, " "));
-    }
+    };
 
     var wiki = encodeURIComponent(XWiki.currentWiki);
     var space = encodeURIComponent(XWiki.currentSpace);
@@ -101,7 +117,7 @@ define(function() {
         language = getParameterByName('language');
     }
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
-    PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&wiki=' + wiki + '&space=' + space + '&page=' + page + '&language=' + language + '&editorTypes=';
+    PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&wiki=' + wiki + '&space=' + space + '&page=' + page + '&language=' + language + multiple + '&editorTypes=';
 
     for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
     require.config({paths:PATHS});
@@ -118,6 +134,25 @@ define(function() {
         link.parentElement.insertBefore(p, link);
     };
 
+    var getRTEditorURL = function (href, editorType) {
+        href = href.replace(/\?(.*)$/, function (all, args) {
+            return '?' + args.split('&').filter(function (arg) {
+                if (arg === 'editor=wysiwyg') { return false; }
+                if (arg === 'editor=wiki') { return false; }
+                if (arg === 'sheet=CKEditor.EditSheet') { return false; }
+                if (arg === 'force=1') { return false; }
+            }).join('&');
+        });
+
+        if (editorType === 'rtwysiwyg') {
+            href = href + '&editor=inline&sheet=CKEditor.EditSheet&force=1';
+        }
+        else if (editorType === 'rtwiki') {
+            href = href + '&editor=wiki&force=1';
+        }
+
+        return href;
+    }
     var pointToRealtime = function (link, types) {
         var href = link.getAttribute('href');
 
@@ -132,13 +167,14 @@ define(function() {
 
         var msg;
         if (types.indexOf('rtwysiwyg') > -1) {
-            href = href + '&editor=inline&sheet=CKEditor.EditSheet&force=1';
+            href = getRTEditorURL(href, 'rtwysiwyg');
             msg = MESSAGES.wysiwygSessionInProgress;
         }
         else if (types.indexOf('rtwiki') > -1) {
-            href = href + '&editor=wiki&force=1';
+            href = getRTEditorURL(href, 'rtwiki');
             msg = MESSAGES.wikiSessionInProgress;
         }
+
         if(link.innerText !== MESSAGES.joinSession) {
             link.setAttribute('href', href);
             link.innerText = MESSAGES.joinSession;
@@ -194,14 +230,12 @@ define(function() {
             if(GetKey.error) { console.error("You don't have permissions to edit that document"); return; }
             var keys = GetKey.keys;
             var types = {};
-            for (var i=0; i<editorTypes.length; i++) {
-                var editor = editorTypes[i];
-                if(!keys[editor]) { console.error("Unable to start a realtime session with that editor. Please check that the application is installed from the extension manager."); return; }
+            for (var editor in keys) {
                 types[editor] = keys[editor].key;
             }
             callback(types);
         });
-    }
+    };
 
     var realtimeDisallowed = function () {
         return localStorage.getItem(LOCALSTORAGE_DISALLOW)?  true: false;
@@ -228,7 +262,27 @@ define(function() {
         } else {
             // do nothing
         }
-    }
-    
+    };
+
+    var displayModal = module.displayModal = function(type) {
+        var behave = {
+           onYes: function() {
+               window.location.href = getRTEditorURL(window.location.href, type);
+           },
+           onNo: function() {
+               return;
+           }
+        };
+
+        var param = {
+            confirmationText: MESSAGES.redirectDialog_prompt.replace(/\{0\}/g, MESSAGES[type+'_editor']),
+            yesButtonText: MESSAGES.redirectDialog_joinRT.replace(/\{0\}/g, MESSAGES[type+'_editor']),
+            noButtonText: MESSAGES.redirectDialog_stayOffline,
+            showCancelButton: false,
+        };
+
+        new XWiki.widgets.ConfirmationBox(behave, param);
+    };
+
     return module;
 });

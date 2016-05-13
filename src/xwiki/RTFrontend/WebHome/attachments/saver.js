@@ -34,7 +34,7 @@ define([
         mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
         mainConfig.language = config.language;
         mainConfig.chainpad = config.chainpad;
-        mainConfig.editorType = config.editorType
+        mainConfig.editorType = config.editorType;
         mainConfig.isHTML = (config.editorType === 'rtwysiwyg');
         ErrorBox = config.ErrorBox;
     };
