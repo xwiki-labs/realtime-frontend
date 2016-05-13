@@ -69,6 +69,7 @@ define(function() {
         RTFrontend_tests: "$document.getAttachmentURL('TypingTests.js')",
         RTFrontend_rangy: "$document.getAttachmentURL('rangy-core.min.js')",
 
+        RTFrontend_errorbox: "$xwiki.getURL('RTFrontend.ErrorBox','jsx')" + '?minify=false',
         RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','jsx')"
     };
 

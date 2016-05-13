@@ -1,12 +1,13 @@
 define([
     'RTFrontend_netflux',
+    'RTFrontend_errorbox',
     'jquery',
-], function (Netflux, $) {
+], function (Netflux, ErrorBox, $) {
     var warn = function (x) {};
     var debug = function (x) {};
     // there was way too much noise, if you want to know everything use verbose
     var verbose = function (x) {};
-    verbose = function (x) { console.log(x); };
+    //verbose = function (x) { console.log(x); };
     debug = function (x) { console.log(x) };
     warn = function (x) { console.log(x) };
 
@@ -36,7 +37,6 @@ define([
         mainConfig.chainpad = config.chainpad;
         mainConfig.editorType = config.editorType;
         mainConfig.isHTML = (config.editorType === 'rtwysiwyg');
-        ErrorBox = config.ErrorBox;
     };
 
     var lastSaved = Saver.lastSaved = {

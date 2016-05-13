@@ -1,0 +1,78 @@
+{{info}}
+This page contains code for notifying the user when an error occurs in a Realtime Editor.
+{{/info}}
+
+(% class="hidden" %)(((
+
+(% class="realtime-error" %)(((
+
+= Oops, something went wrong! =
+
+The Realtime Editor has encountered a non-recoverable error and must stop.
+Some of your work may not be saved but it is below and you may save it now and re-integrate
+it into the Realtime session.
+
+{{html clean=false}}<textarea class="realtime-content" cols="60" rows="10"></textarea>{{/html}}
+
+Please consider reporting a bug at http://jira.xwiki.org/browse/RTWYSIWYG and include the
+following content (Privacy note: This contains the history of the document you were working on).
+
+{{html clean=false}}<textarea class="realtime-debug" cols="60" rows="10"></textarea>{{/html}}
+
+)))
+
+(% class="realtime-disconnected" %)(((
+
+= Disconnected =
+
+Your connection to the Realtime Editor has been lost, you may try refreshing the page
+to get the connection back but some of your most recent work may be lost. To return to the
+page and continue in **non** realtime mode, simply close this box.
+
+)))
+
+(% class="realtime-unavailable" %)(((
+
+= Unavailable =
+
+The Realtime Editor's back end does not seem to be available. You can reload the page and attempt
+to reconnect, or close this box and continue in **non** realtime mode.
+
+)))
+
+(% class="realtime-debug" %)(((
+
+= Debug Log =
+
+The following is a full history of this realtime session:
+
+{{html clean=false}}<textarea class="realtime-debug" cols="60" rows="10"></textarea>{{/html}}
+
+)))
+
+(% class="realtime-merge" %)(((
+
+= Merge Error =
+
+It looks like someone saved this document outside of the realtime session,
+and we were unable to merge your work with theirs.
+
+)))
+
+(% class="realtime-parse" %)(((
+
+= Parse Error =
+
+We were unable to parse the server's response.
+
+)))
+
+(% class="realtime-save" %)(((
+
+= Save Error =
+
+We were unable to save your document. Try again shortly.
+
+)))
+
+)))
