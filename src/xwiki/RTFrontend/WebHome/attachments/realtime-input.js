@@ -194,7 +194,8 @@ define([
                                         channel,
                                         config.initialState || '',
                                         {
-                                        transformFunction: config.transformFunction
+                                        transformFunction: config.transformFunction,
+                                        logLevel: typeof(config.logLevel) !== 'undefined'? config.logLevel : 1
                                         });
         };
 
@@ -254,8 +255,8 @@ define([
             if(USE_HISTORY) {
               var hc;
 
-              wc.members.forEach(function (p) { 
-                if (p.length === 16) { hc = p; } 
+              wc.members.forEach(function (p) {
+                if (p.length === 16) { hc = p; }
               });
               wc.history_keeper = hc;
 
@@ -263,7 +264,7 @@ define([
             }
 
             realtime.start();
-            
+
             if(!USE_HISTORY) {
               onReady(wc, network);
             }
