@@ -6,7 +6,7 @@ define([
     var debug = function (x) {};
     // there was way too much noise, if you want to know everything use verbose
     var verbose = function (x) {};
-    //verbose = function (x) { console.log(x); };
+    verbose = function (x) { console.log(x); };
     debug = function (x) { console.log(x) };
     warn = function (x) { console.log(x) };
 
@@ -27,12 +27,15 @@ define([
     var mainConfig = Saver.mainConfig = {};
 
     var ErrorBox;
-    var getTextValue, setTextValue, isHTML;
+    var getTextValue, setTextValue;
 
-    var configure = Saver.configure = function (config, language) {
+    var configure = Saver.configure = function (config) {
         mainConfig.ajaxMergeUrl =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
         mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
-        mainConfig.language = language;
+        mainConfig.language = config.language;
+        mainConfig.chainpad = config.chainpad;
+        mainConfig.editorType = config.editorType
+        mainConfig.isHTML = (config.editorType === 'rtwysiwyg');
         ErrorBox = config.ErrorBox;
     };
 
@@ -100,7 +103,7 @@ define([
         var stats=getDocumentStatistics();
 
         stats.content = content;
-        if (isHTML) {
+        if (mainConfig.isHTML) {
           stats.convertHTML = 1;
         }
 
@@ -164,7 +167,9 @@ define([
             } else if (out) {
                 debug("Triggering lastSaved refresh on remote clients");
                 lastSaved.version = out.version;
-                saveMessage(webChannel, channel, lastSaved.version);
+                lastSaved.content = out.content;
+                var contentHash = (mainConfig.chainpad && mainConfig.chainpad.hex_sha256) ? mainConfig.chainpad.hex_sha256(out.content) : "";
+                saveMessage(webChannel, channel, lastSaved.version, contentHash);
                 cb && cb(out);
             } else {
                 throw new Error();
@@ -196,7 +201,7 @@ define([
             language: mainConfig.language
         };
 
-        if (isHTML) {
+        if (mainConfig.isHTML) {
             data.RequiresHTMLConversion = "content";
             data.content_syntax = "xwiki/2.1";
         }
@@ -227,12 +232,14 @@ define([
         });
     };
 
+    var ISAVED = 1;
     // sends an ISAVED message
-    var saveMessage=function (wc, channel, version) {
+    var saveMessage=function (wc, channel, version, hash) {
         debug("saved document"); // RT_event-on_save
         // show(saved(version))
         lastSaved.mergeMessage('saved', [version]);
-        wc.bcast(version).then(function() {
+        var msg = [ISAVED, version, hash, mainConfig.editorType];
+        wc.bcast(JSON.stringify(msg)).then(function() {
           // Send the message back to Chainpad once it is sent to the recipients.
           onMessage(version, wc.myID);
         }, function(err) {
@@ -280,7 +287,7 @@ define([
     };
 
 
-    var onMessage = function (msg, sender) {
+    var onMessage = function (data, sender) {
         // set a flag so any concurrent processes know to abort
         lastSaved.receivedISAVE = true;
 
@@ -294,39 +301,52 @@ define([
             tells us whether the ISAVED was set by our *browser*
             if not, we should treat it as foreign.
         */
-        if (lastSaved.version !== msg) {
-            // a merge dialog might be open, if so, remove it and say as much
-            destroyDialog(function (dialogDestroyed) {
-                if (dialogDestroyed) {
-                    // tell the user about the merge resolution
-                    lastSaved.mergeMessage('conflictResolved', [msg]);
-                } else {
-                    // otherwise say there was a remote save
-                    // http://jira.xwiki.org/browse/RTWIKI-34
-                    lastSaved.mergeMessage(
-                        'savedRemote',
-                        [msg, sender]);
-                }
-            });
 
-            debug("A remote client saved and "+
-                "incremented the latest common ancestor");
+        // msg : [ISAVED, version, hash, editorType]
+        var msg;
+        try { msg = JSON.parse(data); } catch (e) { console.log(e.stack);return; }
+        var msgType = msg[0];
+        var msgVersion = msg[1];
+        var msgHash = msg[2];
+        var msgEditor = msg[3];
 
-            // update lastSaved attributes
-            lastSaved.wasEditedLocally = false;
+        if (msgType !== ISAVED) { return; }
 
-            // update the local latest Common Ancestor version string
-            lastSaved.version = msg;
+        if (msgEditor === mainConfig.editorType) {
+            if (lastSaved.version !== msgVersion) {
+                // a merge dialog might be open, if so, remove it and say as much
+                destroyDialog(function (dialogDestroyed) {
+                    if (dialogDestroyed) {
+                        // tell the user about the merge resolution
+                        lastSaved.mergeMessage('conflictResolved', [msgVersion]);
+                    } else {
+                        // otherwise say there was a remote save
+                        // http://jira.xwiki.org/browse/RTWIKI-34
+                        lastSaved.mergeMessage(
+                            'savedRemote',
+                            [msgVersion, sender]);
+                    }
+                });
 
-            // remember the state of the textArea when last saved
-            // so that we can avoid additional minor versions
-            // there's a *tiny* race condition here
-            // but it's probably not an issue
-            lastSaved.content = getTextValue();
-        } else {
-            lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+                debug("A remote client saved and "+
+                    "incremented the latest common ancestor");
+
+                // update lastSaved attributes
+                lastSaved.wasEditedLocally = false;
+
+                // update the local latest Common Ancestor version string
+                lastSaved.version = msgVersion;
+
+                // remember the state of the textArea when last saved
+                // so that we can avoid additional minor versions
+                // there's a *tiny* race condition here
+                // but it's probably not an issue
+                lastSaved.content = getTextValue();
+            } else {
+                lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+            }
+            lastSaved.time = now();
         }
-        lastSaved.time = now();
         return false;
     }; // end onMessage
     /*
@@ -352,7 +372,6 @@ define([
 
         getTextValue = config.getTextValue || null;
         setTextValue = config.setTextValue || null;
-        isHTML = config.isHTML || false;
         var messages = config.messages;
         var language = mainConfig.language;
 

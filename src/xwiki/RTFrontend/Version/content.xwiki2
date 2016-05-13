@@ -12,6 +12,8 @@
 
 #set ($mymap["version"] = $currentVersion)
 
+#set ($mymap["content"] = $currentDoc.content)
+
 #set ($out = $jsontool.serialize($mymap))
 $response.getOutputStream().print($out)
 $xcontext.setFinished(true)
