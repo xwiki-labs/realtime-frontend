@@ -201,6 +201,7 @@ define(function() {
                 messages: MESSAGES,
             },
             WebsocketURL: WEBSOCKET_URL,
+            htmlConverterUrl: "$xwiki.getURL('RTFrontend.ConvertHTML','get')",
             userName: userName,
             language: language,
             DEMO_MODE: DEMO_MODE,

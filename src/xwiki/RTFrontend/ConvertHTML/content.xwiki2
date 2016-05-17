@@ -1,0 +1,18 @@
+{{velocity wiki=false}}
+## The $source variable is used inside the content sheet.
+#set ($text = "$!request.text")
+#set ($toHTML = $request.convert == 'true')
+#set ($wiki = "$!request.getParameter('wiki')")
+#set ($space = "$!request.getParameter('space')")
+#set ($page = "$!request.getParameter('page')")
+#set ($docRef = $services.model.createDocumentReference($wiki, $space, $page))
+#set ($doc = $xwiki.getDocument($docRef))
+#set ($discard = $xcontext.setDoc($doc.document))
+#set ($source = {
+  'content': $text,
+  'syntax': $doc.syntax
+})
+#set ($output = $xwiki.getDocument('CKEditor.ContentSheet').getRenderedContent())
+#set ($discard = $response.writer.print($output))
+#set ($discard = $response.setContentLength($output.length()))
+{{/velocity}}
