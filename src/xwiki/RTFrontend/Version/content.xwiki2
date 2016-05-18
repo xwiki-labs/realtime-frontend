@@ -1,10 +1,22 @@
 {{velocity output=false }}
 
 #set ($name = $request.get('document'))
+#set ($language = $request.get('language'))
 #set ($currentDoc = $xwiki.getDocument($name))
-#set ($currentVersion = $currentDoc.getVersion())
+#set ($translatedDocument = $currentDoc.getTranslatedDocument($language))
 
-#set ($isNew = $currentDoc.isNew())
+#set ($currentVersion = $translatedDocument.getVersion())
+#set ($isNew = $translatedDocument.isNew())
+#set ($content = $translatedDocument.content)
+
+## Check if the translation in the requested language exists.
+## If the translation does not exist, i.e. "getTranslatedDocument" is the default document, it means it's a new translation.
+## In that case we have to set the version and "isNew" to the correct values
+#if ($language != "default" && $translatedDocument.locale != $language)
+    #set ($isNew = true)
+    #set ($currentVersion = "1.1")
+    #set ($content = "")
+#end
 
 #set ($mymap = {});
 
@@ -12,7 +24,7 @@
 
 #set ($mymap["version"] = $currentVersion)
 
-#set ($mymap["content"] = $currentDoc.content)
+#set ($mymap["content"] = $content)
 
 #set ($out = $jsontool.serialize($mymap))
 $response.getOutputStream().print($out)

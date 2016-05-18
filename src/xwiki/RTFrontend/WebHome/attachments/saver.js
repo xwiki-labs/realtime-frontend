@@ -30,18 +30,8 @@ define([
     var ErrorBox;
     var getTextValue, setTextValue;
 
-    var configure = Saver.configure = function (config) {
-        mainConfig.ajaxMergeUrl =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
-        mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
-        mainConfig.language = config.language;
-        mainConfig.chainpad = config.chainpad;
-        mainConfig.editorType = config.editorType;
-        mainConfig.isHTML = (config.editorType === 'rtwysiwyg');
-    };
-
     var lastSaved = Saver.lastSaved = {
         content: '',
-        version: $('html').data('xwiki-version'),
         time: 0,
         // http://jira.xwiki.org/browse/RTWIKI-37
         hasModifications: false,
@@ -51,6 +41,17 @@ define([
         receivedISAVE: false,
         shouldRedirect: false,
         isavedSignature: ''
+    };
+
+    var configure = Saver.configure = function (config) {
+        mainConfig.ajaxMergeUrl   =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
+        mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
+        mainConfig.language       = config.language;
+        mainConfig.version        = config.version;
+        mainConfig.chainpad       = config.chainpad;
+        mainConfig.editorType     = config.editorType;
+        mainConfig.isHTML         = (config.editorType === 'rtwysiwyg');
+        lastSaved.version = config.version;
     };
 
     var updateLastSaved = Saver.update = function (content) {
@@ -92,6 +93,8 @@ define([
         fields.forEach(function (field) {
             result[field] = $html.data('xwiki-'+field);
         });
+
+        result.language = mainConfig.language;
 
         return result;
     };
@@ -241,7 +244,7 @@ define([
         var msg = [ISAVED, version, hash, mainConfig.editorType];
         wc.bcast(JSON.stringify(msg)).then(function() {
           // Send the message back to Chainpad once it is sent to the recipients.
-          onMessage(version, wc.myID);
+          onMessage(JSON.stringify(msg), wc.myID);
         }, function(err) {
           // The message has not been sent, display the error.
           console.error(err);

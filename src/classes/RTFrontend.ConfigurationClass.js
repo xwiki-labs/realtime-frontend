@@ -5,7 +5,7 @@ XClass(function (xcl, XWiki) {
     "defaultValue": "",
     "displayFormType": "checkbox",
     "displayType": "",
-    "prettyName": "Allow multiple realtime editors at the same time for one document",
+    "prettyName": "Allow different types of editors (wysiwyg, wiki, etc.) at the same time",
     "validationMessage": "",
     "validationRegExp": ""
   }));

@@ -1,4 +1,4 @@
-define(function() {
+define(['jquery'], function($) {
     var module = {};
     // VELOCITY
     var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')";
@@ -112,11 +112,23 @@ define(function() {
     var wiki = encodeURIComponent(XWiki.currentWiki);
     var space = encodeURIComponent(XWiki.currentSpace);
     var page = encodeURIComponent(XWiki.currentPage);
-    var languageSelector = document.querySelectorAll('form input[name="language"]');// [0].value;
-    var language = languageSelector[0] && languageSelector[0].value;
-    if(!language) {
-        language = getParameterByName('language');
+
+    var language, version;
+    var languageSelector = $('#realtime-frontend-getversion');
+    if (languageSelector.length) {
+        var json = JSON.parse($(languageSelector).html());
+        language = json.locale;
+        version = json.version;
     }
+    else {
+        console.log("WARNING : unable to get the language and version number from the UIExtension. Using the old method to get them.");
+        var languageSelector = document.querySelectorAll('form input[name="language"]');// [0].value;
+        language = languageSelector[0] && languageSelector[0].value;
+        version = $('html').data('xwiki-version');
+    }
+    // if(!language) {
+        // language = getParameterByName('language');
+    // }
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
     PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&wiki=' + wiki + '&space=' + space + '&page=' + page + '&language=' + language + multiple + '&editorTypes=';
 
@@ -184,12 +196,6 @@ define(function() {
     };
 
     var getConfig = module.getConfig = function () {
-        var languageSelector = document.querySelectorAll('form input[name="language"]');// [0].value;
-
-        var language = languageSelector[0] && languageSelector[0].value;
-
-        if (!language || language === 'default') { language = DEFAULT_LANGUAGE; }
-
         // Username === <USER>-encoded(<PRETTY_USER>)%2d<random number>
         var userName = USER + '-' + encodeURIComponent(PRETTY_USER + '-').replace(/-/g, '%2d') +
             String(Math.random()).substring(2);
@@ -199,6 +205,8 @@ define(function() {
                 ajaxMergeUrl: "$xwiki.getURL('RTFrontend.Ajax','get')",
                 ajaxVersionUrl: "$xwiki.getURL('RTFrontend.Version','get')",
                 messages: MESSAGES,
+                language: language,
+                version: version
             },
             WebsocketURL: WEBSOCKET_URL,
             htmlConverterUrl: "$xwiki.getURL('RTFrontend.ConvertHTML','get')",

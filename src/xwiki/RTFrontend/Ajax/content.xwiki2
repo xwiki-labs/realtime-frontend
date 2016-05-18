@@ -15,15 +15,25 @@
 ##
 ## the version the client expects to be its latest common ancestor
     #set ($ancestorVersion = $request.get('version'))
+## the language of the document
+    #set ($language = $request.get('language'))
 ## the name of the document
     #set ($documentName = $request.get('document'))
 ## the realtime editor's content
     #set ($rtLiveContent = $request.get('content'))
 ##
-    #set ($latestDocument = $xwiki.getDocument($documentName))
+    #set ($latestDocument = $xwiki.getDocument($documentName).getTranslatedDocument($language))
     #set ($latestContent = $latestDocument.getContent())
     #set ($ancestorDocument = $latestDocument.getDocumentRevision($ancestorVersion))
     #set ($ancestorContent = $ancestorDocument.getContent())
+##
+    ## Check if the translation in the requested language exists.
+    ## If the translation does not exist, i.e. "getTranslatedDocument" is the default document, it means it's a new translation.
+    ## In that case we have to set the contents to ""
+    #if ($language != "default" && $latestDocument.locale != $language)
+        #set ($latestContent = "")
+        #set ($ancestorContent = "")
+    #end
 ##
     #if ("$!{request.convertHTML}" == "1")
         #set ($xdom = $services.rendering.parse($rtLiveContent, 'html/4.01'))
