@@ -1,1 +1,34 @@
-{{info}}This document is used internally by the Realtime WikiText Editor{{/info}}
+{{velocity}}
+#if ($xcontext.action == "get")
+    #set ($editorData = "$!request.getParameter('data')")
+    #if ($editorData == "")
+        {error:"data: $editorData"}
+    #else
+        #set ($mymap = {})
+        #set ($dataList = $jsontool.parse($editorData))
+        #foreach($data in $dataList)
+            #if(!$mymap[$data.doc])
+                #set($mymap[$data.doc] = $collectionstool.map)
+            #end
+            #set($docMap = $mymap[$data.doc])
+            #if(!$docMap[$data.mod])
+                #set($docMap[$data.mod] = $collectionstool.map)
+            #end
+            #set ($ref = $services.model.resolveDocument($data.doc))
+            #set ($getKey = $services.realtime.getChannelKey($ref, $data.mod, $data.editor))
+            #if ("$!getKey.error" != "")
+                #set ($mymap = $getKey)
+                #break
+            #end
+            ##
+            #foreach($key in $getKey.keys.keySet())
+                #set($docMap[$data.mod][$key] = $getKey.keys[$key])
+            #end
+            ##
+        #end
+        $jsontool.serialize($mymap)
+    #end
+#else
+    {{info}}This document is used internally by the Realtime Frontend extension{{/info}}
+#end
+{{/velocity}}

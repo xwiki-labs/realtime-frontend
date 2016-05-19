@@ -1,4 +1,4 @@
-define(['jquery'], function($) {
+define(['jquery', 'xwiki-meta'], function($, xm) {
     var module = {};
     // VELOCITY
     var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')";
@@ -14,6 +14,7 @@ define(['jquery'], function($) {
 
         wysiwygSessionInProgress: "A Realtime <strong>WYSIWYG</strong> Editor session is in progress:",
         wikiSessionInProgress: "A Realtime <strong>Wiki</strong> Editor session is in progress:",
+        formSessionInProgress: "A Realtime <strong>Form</strong> Editor session is in progress:",
 
         disconnected: "Disconnected",
         myself: "Myself",
@@ -70,7 +71,7 @@ define(['jquery'], function($) {
         RTFrontend_rangy: "$document.getAttachmentURL('rangy-core.min.js')",
 
         RTFrontend_errorbox: "$xwiki.getURL('RTFrontend.ErrorBox','jsx')" + '?minify=false',
-        RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','jsx')"
+        RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','get')?outputSyntax=plain&"
     };
 
     // Prevent users from forcing a realtime editor if another type of realtime session is opened
@@ -109,9 +110,7 @@ define(['jquery'], function($) {
         return decodeURIComponent(results[2].replace(/\+/g, " "));
     };
 
-    var wiki = encodeURIComponent(XWiki.currentWiki);
-    var space = encodeURIComponent(XWiki.currentSpace);
-    var page = encodeURIComponent(XWiki.currentPage);
+    var documentReference = xm.documentReference+'' || xm.wiki+':'+xm.document;
 
     var language, version;
     var languageSelector = $('#realtime-frontend-getversion');
@@ -130,7 +129,8 @@ define(['jquery'], function($) {
         // language = getParameterByName('language');
     // }
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
-    PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&wiki=' + wiki + '&space=' + space + '&page=' + page + '&language=' + language + multiple + '&editorTypes=';
+    //PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&reference=' + documentReference + '&language=' + language + multiple + '&editorTypes=';
+    GetKey_data = 'minify=false&reference=' + encodeURIComponent(documentReference) + '&language=' + language + multiple + '&editorTypes=';
 
     for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
     require.config({paths:PATHS});
@@ -148,10 +148,13 @@ define(['jquery'], function($) {
     };
 
     var getRTEditorURL = function (href, editorType) {
+        var editor = 'object';
         href = href.replace(/\?(.*)$/, function (all, args) {
             return '?' + args.split('&').filter(function (arg) {
                 if (arg === 'editor=wysiwyg') { return false; }
                 if (arg === 'editor=wiki') { return false; }
+                if (arg === 'editor=object') { return false; }
+                if (arg === 'editor=inline') { editor = 'inline'; return false; }
                 if (arg === 'sheet=CKEditor.EditSheet') { return false; }
                 if (arg === 'force=1') { return false; }
             }).join('&');
@@ -163,20 +166,14 @@ define(['jquery'], function($) {
         else if (editorType === 'rtwiki') {
             href = href + '&editor=wiki&force=1';
         }
+        else if (editorType === 'rtform') {
+            href = href + '&editor='+editor+'&force=1';
+        }
 
         return href;
     }
     var pointToRealtime = function (link, types) {
         var href = link.getAttribute('href');
-
-        href = href.replace(/\?(.*)$/, function (all, args) {
-            return '?' + args.split('&').filter(function (arg) {
-                if (arg === 'editor=wysiwyg') { return false; }
-                if (arg === 'editor=wiki') { return false; }
-                if (arg === 'sheet=CKEditor.EditSheet') { return false; }
-                if (arg === 'force=1') { return false; }
-            }).join('&');
-        });
 
         var msg;
         if (types.indexOf('rtwysiwyg') > -1) {
@@ -186,6 +183,10 @@ define(['jquery'], function($) {
         else if (types.indexOf('rtwiki') > -1) {
             href = getRTEditorURL(href, 'rtwiki');
             msg = MESSAGES.wikiSessionInProgress;
+        }
+        else if (types.indexOf('rtform') > -1) {
+            href = getRTEditorURL(href, 'rtform');
+            msg = MESSAGES.formSessionInProgress;
         }
 
         if(link.innerText !== MESSAGES.joinSession) {
@@ -212,19 +213,30 @@ define(['jquery'], function($) {
             htmlConverterUrl: "$xwiki.getURL('RTFrontend.ConvertHTML','get')",
             userName: userName,
             language: language,
+            reference: documentReference,
             DEMO_MODE: DEMO_MODE,
             LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW
         };
     };
 
     var checkSocket = function (callback) {
-        require(['RTFrontend_GetKey'], function(GetKey) {
+        var path = PATHS.RTFrontend_GetKey;
+        var editorData = [{doc: documentReference, mod: language+'/content', editor: ''}];
+        $.ajax({
+            url: path,
+            data: 'data='+encodeURIComponent(JSON.stringify(editorData)),
+            type: 'POST'
+        }).done(function(dataText) {
+            var data = JSON.parse(dataText);
             var types = [];
-            if(GetKey.error) { console.error("You don't have permissions to edit that document"); return; }
-            var keys = GetKey.keys;
-            for (var editor in keys) {
-                if (editor !== 'events') {
-                    if (keys[editor].users && keys[editor].users > 0) {
+            if (data.error) { console.error("You don't have permissions to edit that document"); return; }
+            var mods = data[documentReference];
+            if (!mods) { console.error("Unknown error"); return; }
+            var content = window.teste = mods[language+'/content'];
+            if (!content) { console.error("Unknown error"); return; }
+            for (var editor in content) {
+                if(editor) {
+                    if (content[editor].users && content[editor].users > 0) {
                         types.push(editor);
                     }
                 }
@@ -234,16 +246,23 @@ define(['jquery'], function($) {
         });
     };
 
-    var getKeys = module.getKeys = function(editorTypes, callback) {
-        var path = PATHS.RTFrontend_GetKey + encodeURIComponent(editorTypes);
-        require([path], function(GetKey) {
-            if(GetKey.error) { console.error("You don't have permissions to edit that document"); return; }
-            var keys = GetKey.keys;
+    var getKeys = module.getKeys = function(editorData, callback) {
+        var path = PATHS.RTFrontend_GetKey;
+        var dataList = [];
+
+        $.ajax({
+            url: path,
+            data: 'data='+encodeURIComponent(JSON.stringify(editorData)),
+            type: 'GET'
+        }).done(function(dataText) {
+            var data = JSON.parse(dataText);
+            if(data.error) { console.error("You don't have permissions to edit that document"); return; }
+            /*var keys = data.keys;
             var types = {};
             for (var editor in keys) {
                 types[editor] = keys[editor].key;
-            }
-            callback(types);
+            }*/
+            callback(data);
         });
     };
 
