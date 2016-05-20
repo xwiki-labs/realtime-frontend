@@ -128,7 +128,7 @@ define([
         if(typeof getLag !== "function") { return; }
         var lag = getLag();
         var lagMsg = Messages.lag + ' ';
-        if(lag) {
+        if(lag != null && typeof lag !== "undefined") {
           var lagSec = lag/1000;
           if (lag.waiting && lagSec > 1) {
               lagMsg += "?? " + Math.floor(lagSec);

@@ -11,9 +11,6 @@ define([
     debug = function (x) { console.log(x) };
     warn = function (x) { console.log(x) };
 
-    // Number for a message type which will not interfere with chainpad.
-    var MESSAGE_TYPE_ISAVED = 5000;
-
     var SAVE_DOC_TIME = 60000;
 
     // how often to check if the document has been saved recently
