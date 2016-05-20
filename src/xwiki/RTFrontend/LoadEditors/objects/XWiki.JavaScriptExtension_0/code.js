@@ -12,9 +12,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         allowRealtime: "Allow Realtime Collaboration", // TODO: translate
         joinSession: "Join Realtime Collaborative Session",
 
-        wysiwygSessionInProgress: "A Realtime <strong>WYSIWYG</strong> Editor session is in progress:",
-        wikiSessionInProgress: "A Realtime <strong>Wiki</strong> Editor session is in progress:",
-        formSessionInProgress: "A Realtime <strong>Form</strong> Editor session is in progress:",
+        sessionInProgress: "A Realtime <strong>{0}</strong> Editor session is in progress:",
 
         disconnected: "Disconnected",
         myself: "Myself",
@@ -35,10 +33,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         mergeDialog_keepRealtime: "Overwrite all changes with the current realtime version",
         mergeDialog_keepRemote:   "Overwrite all changes with the current remote version",
 
-        rtwiki_editor: "Wiki",
-        rtwysiwyg_editor: "WYSIWYG",
-        rtwiki_name: "Realtime Collaborative Plain WikiText Editor",
-        rtwysiwyg_name: "Visual Realtime Collaborative Editor",
         redirectDialog_prompt: "A realtime session already exists for that document, but it is using the {0} editor. "+
             "Do you want to join that session?",
         redirectDialog_joinRT: "Join the realtime {0} session (Recommended)",
@@ -147,47 +141,32 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         link.parentElement.insertBefore(p, link);
     };
 
-    var getRTEditorURL = function (href, editorType) {
-        var editor = 'object';
+    var getRTEditorURL = function (href, editorType, info) {
         href = href.replace(/\?(.*)$/, function (all, args) {
             return '?' + args.split('&').filter(function (arg) {
                 if (arg === 'editor=wysiwyg') { return false; }
                 if (arg === 'editor=wiki') { return false; }
                 if (arg === 'editor=object') { return false; }
-                if (arg === 'editor=inline') { editor = 'inline'; return false; }
+                if (arg === 'editor=inline') { return false; }
                 if (arg === 'sheet=CKEditor.EditSheet') { return false; }
                 if (arg === 'force=1') { return false; }
+                else { return true; }
             }).join('&');
         });
-
-        if (editorType === 'rtwysiwyg') {
-            href = href + '&editor=inline&sheet=CKEditor.EditSheet&force=1';
-        }
-        else if (editorType === 'rtwiki') {
-            href = href + '&editor=wiki&force=1';
-        }
-        else if (editorType === 'rtform') {
-            href = href + '&editor='+editor+'&force=1';
-        }
-
+        href = href + info.href;
         return href;
     }
-    var pointToRealtime = function (link, types) {
+    var pointToRealtime = function (link, type, info) {
         var href = link.getAttribute('href');
 
         var msg;
-        if (types.indexOf('rtwysiwyg') > -1) {
-            href = getRTEditorURL(href, 'rtwysiwyg');
-            msg = MESSAGES.wysiwygSessionInProgress;
-        }
-        else if (types.indexOf('rtwiki') > -1) {
-            href = getRTEditorURL(href, 'rtwiki');
-            msg = MESSAGES.wikiSessionInProgress;
-        }
-        else if (types.indexOf('rtform') > -1) {
-            href = getRTEditorURL(href, 'rtform');
-            msg = MESSAGES.formSessionInProgress;
-        }
+
+        if (type !== info.type) { return; }
+
+        href = getRTEditorURL(href, type, info);
+
+        var name = info.name || type;
+        msg = MESSAGES.sessionInProgress.replace(/\{0\}/g, name);
 
         if(link.innerText !== MESSAGES.joinSession) {
             link.setAttribute('href', href);
@@ -228,7 +207,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             type: 'POST'
         }).done(function(dataText) {
             var data = JSON.parse(dataText);
-            var types = [];
+            var type,
+                users = 0;
             if (data.error) { console.error("You don't have permissions to edit that document"); return; }
             var mods = data[documentReference];
             if (!mods) { console.error("Unknown error"); return; }
@@ -237,12 +217,15 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             for (var editor in content) {
                 if(editor) {
                     if (content[editor].users && content[editor].users > 0) {
-                        types.push(editor);
+                        if (!type || content[editor].users > users) {
+                            type = editor;
+                            users = content[editor].users;
+                        }
                     }
                 }
             }
-            if (types.size() === 0) { callback(false); }
-            else { callback(true, types); }
+            if (!type) { callback(false); }
+            else { callback(true, type); }
         });
     };
 
@@ -253,15 +236,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         $.ajax({
             url: path,
             data: 'data='+encodeURIComponent(JSON.stringify(editorData)),
-            type: 'GET'
+            type: 'POST'
         }).done(function(dataText) {
             var data = JSON.parse(dataText);
             if(data.error) { console.error("You don't have permissions to edit that document"); return; }
-            /*var keys = data.keys;
-            var types = {};
-            for (var editor in keys) {
-                types[editor] = keys[editor].key;
-            }*/
             callback(data);
         });
     };
@@ -271,18 +249,18 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
     var lock = getDocLock();
 
-    var checkSession = module.checkSessions = function() {
+    var checkSession = module.checkSessions = function(info) {
         if (lock) {
             // found a lock link
 
-            checkSocket(function (active, types) {
+            checkSocket(function (active, type) {
                 // determine if it's a realtime session
                 if (active) {
                     console.log("Found an active realtime");
                     if (realtimeDisallowed()) {
                         // do nothing
                     } else {
-                        pointToRealtime(lock, types);
+                        pointToRealtime(lock, type, info);
                     }
                 } else {
                     console.log("Couldn't find an active realtime session");
@@ -293,10 +271,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }
     };
 
-    var displayModal = module.displayModal = function(type) {
+    var displayModal = module.displayModal = function(type, info) {
         var behave = {
            onYes: function() {
-               window.location.href = getRTEditorURL(window.location.href, type);
+               window.location.href = getRTEditorURL(window.location.href, type, info);
            },
            onNo: function() {
                return;
@@ -304,8 +282,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         };
 
         var param = {
-            confirmationText: MESSAGES.redirectDialog_prompt.replace(/\{0\}/g, MESSAGES[type+'_editor']),
-            yesButtonText: MESSAGES.redirectDialog_joinRT.replace(/\{0\}/g, MESSAGES[type+'_editor']),
+            confirmationText: MESSAGES.redirectDialog_prompt.replace(/\{0\}/g, '"'+type+'"'),
+            yesButtonText: MESSAGES.redirectDialog_joinRT.replace(/\{0\}/g, '"'+type+'"'),
             noButtonText: MESSAGES.redirectDialog_stayOffline,
             showCancelButton: false,
         };
