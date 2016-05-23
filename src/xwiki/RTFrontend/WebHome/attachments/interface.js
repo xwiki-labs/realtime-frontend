@@ -79,6 +79,7 @@ define([
         // maybe this should go in autosaver instead?
     */
     var createMergeMessageElement = Interface.createMergeMessageElement = function (container, messages) {
+        setStyle();
         var id = uid();
         $(container).prepend( '<div class="realtime-merge" id="'+id+'"></div>');
         var $merges = $('#'+id);
