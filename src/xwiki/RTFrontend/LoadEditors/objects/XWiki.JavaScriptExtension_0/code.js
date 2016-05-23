@@ -156,6 +156,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 else { return true; }
             }).join('&');
         });
+        if(href.indexOf('?') === -1) { href += '?'; }
         href = href + info.href;
         return href;
     }
