@@ -8,11 +8,11 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     DEMO_MODE = (DEMO_MODE === true || DEMO_MODE === "true") ? true : false;
     var DEFAULT_LANGUAGE = "$xwiki.getXWikiPreference('default_language')";
     var LOCALSTORAGE_DISALLOW = 'realtime-disallow';
-    var MESSAGES = {
+    var MESSAGES = module.messages = {
         allowRealtime: "Allow Realtime Collaboration", // TODO: translate
         joinSession: "Join Realtime Collaborative Session",
 
-        sessionInProgress: "A Realtime <strong>{0}</strong> Editor session is in progress:",
+        sessionInProgress: "A Realtime Editor session is in progress:",
 
         disconnected: "Disconnected",
         myself: "Myself",
@@ -33,10 +33,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         mergeDialog_keepRealtime: "Overwrite all changes with the current realtime version",
         mergeDialog_keepRemote:   "Overwrite all changes with the current remote version",
 
-        redirectDialog_prompt: "A realtime session already exists for that document, but it is using the {0} editor. "+
-            "Do you want to join that session?",
-        redirectDialog_joinRT: "Join the realtime {0} session (Recommended)",
-        redirectDialog_stayOffline: "Stay offline (Risks of merge issues)"
+        redirectDialog_prompt: "A realtime session already exists for that document. "+
+            "Do you want to join it?",
+        redirectDialog_plural_prompt: "Different Realtime sessions already exist for that document. "+
+            "Which session do you want to join?",
+        redirectDialog_join: "Join the realtime {0} session",
+        redirectDialog_create: "Create a new realtime {0} session"
     };
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
     var PATHS = {
@@ -129,10 +131,11 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
     require.config({paths:PATHS});
 
-    var getDocLock = function () {
+    var getDocLock = module.getDocLock = function () {
         var force = document.querySelectorAll('a[href*="force=1"][href*="/edit/"]');
         return force.length? force[0] : false;
     };
+    var isForced = module.isForced = (window.location.href.indexOf("force=1") >= 0);
 
     // used to insert some descriptive text before the lock link
     var prependLink = function (link, text) {
@@ -141,7 +144,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         link.parentElement.insertBefore(p, link);
     };
 
-    var getRTEditorURL = function (href, editorType, info) {
+    var getRTEditorURL = module.getEditorURL = function (href, info) {
         href = href.replace(/\?(.*)$/, function (all, args) {
             return '?' + args.split('&').filter(function (arg) {
                 if (arg === 'editor=wysiwyg') { return false; }
@@ -156,24 +159,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         href = href + info.href;
         return href;
     }
-    var pointToRealtime = function (link, type, info) {
-        var href = link.getAttribute('href');
-
-        var msg;
-
-        if (type !== info.type) { return; }
-
-        href = getRTEditorURL(href, type, info);
-
-        var name = info.name || type;
-        msg = MESSAGES.sessionInProgress.replace(/\{0\}/g, name);
-
-        if(link.innerText !== MESSAGES.joinSession) {
-            link.setAttribute('href', href);
-            link.innerText = MESSAGES.joinSession;
-            prependLink(link, msg);
-        }
-    };
 
     var getConfig = module.getConfig = function () {
         // Username === <USER>-encoded(<PRETTY_USER>)%2d<random number>
@@ -207,7 +192,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             type: 'POST'
         }).done(function(dataText) {
             var data = JSON.parse(dataText);
-            var type,
+            var types = [],
                 users = 0;
             if (data.error) { console.error("You don't have permissions to edit that document"); return; }
             var mods = data[documentReference];
@@ -217,15 +202,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             for (var editor in content) {
                 if(editor) {
                     if (content[editor].users && content[editor].users > 0) {
-                        if (!type || content[editor].users > users) {
-                            type = editor;
-                            users = content[editor].users;
+                        if (content[editor].users > users) {
+                            types.push(editor);
                         }
                     }
                 }
             }
-            if (!type) { callback(false); }
-            else { callback(true, type); }
+            if (types.length === 0) { callback(false); }
+            else { callback(true, types); }
         });
     };
 
@@ -253,14 +237,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (lock) {
             // found a lock link
 
-            checkSocket(function (active, type) {
+            checkSocket(function (active, types) {
                 // determine if it's a realtime session
                 if (active) {
                     console.log("Found an active realtime");
                     if (realtimeDisallowed()) {
                         // do nothing
                     } else {
-                        pointToRealtime(lock, type, info);
+                        displayModal(null, types, null, info);
                     }
                 } else {
                     console.log("Couldn't find an active realtime session");
@@ -271,25 +255,66 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }
     };
 
-    var displayModal = module.displayModal = function(type, info) {
-        var behave = {
-           onYes: function() {
-               window.location.href = getRTEditorURL(window.location.href, type, info);
-           },
-           onNo: function() {
-               return;
-           }
-        };
+    var displayModal = module.displayModal = function(createType, existingTypes, callback, info) {
+        if(XWiki.widgets.RealtimeCreateModal) { return; };
+        XWiki.widgets.RealtimeCreateModal = Class.create(XWiki.widgets.ModalPopup, {
+            /** Default parameters can be added to the custom class. */
+            defaultInteractionParameters : {
+            },
+            /** Constructor. Registers the key listener that pops up the dialog. */
+            initialize : function($super, interactionParameters) {
+                this.interactionParameters = Object.extend(Object.clone(this.defaultInteractionParameters), interactionParameters || {});
+                // call constructor from ModalPopup with params content, shortcuts, options
+                $super(
+                this.createContent(this.interactionParameters, this),
+                    {
+                        "show"  : { method : this.showDialog,  keys : [] },
+                        "close" : { method : this.closeDialog, keys : ['Esc'] }
+                    },
+                    {
+                        displayCloseButton : true,
+                        verticalPosition : "top",
+                        backgroundColor : "#FFF"
+                    }
+                );
+                this.showDialog();
+                this.setClass("realtime-create-session");
+                $(document).trigger('insertButton');
+            },
+            /** Get the content of the modal dialog using ajax */
+            createContent : function (data, modal) {
+                var content =  new Element('div', {'class': 'modal-popup'});
 
-        var param = {
-            confirmationText: MESSAGES.redirectDialog_prompt.replace(/\{0\}/g, '"'+type+'"'),
-            yesButtonText: MESSAGES.redirectDialog_joinRT.replace(/\{0\}/g, '"'+type+'"'),
-            noButtonText: MESSAGES.redirectDialog_stayOffline,
-            showCancelButton: false,
-        };
+                // Create buttons container
+                var classesButtons = '';
+                existingTypes.forEach(function (elmt) { classesButtons += " realtime-button-"+elmt; });
+                var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'+classesButtons});
 
-        new XWiki.widgets.ConfirmationBox(behave, param);
-    };
+                // Add text description
+                if (existingTypes.length > 1) {
+                    content.insert(MESSAGES.redirectDialog_plural_prompt);
+                } else {
+                    content.insert(MESSAGES.sessionInProgress);
+                }
+                content.insert(buttonsDiv);
+
+                // Create new session button
+                var br =  new Element('br');
+                if (createType) {
+                    var buttonCreate =  new Element('button', {'class': 'btn btn-primary'});
+                    buttonCreate.insert(MESSAGES.redirectDialog_create.replace(/\{0\}/g, info.name));
+                    $(buttonCreate).on('click', function() {
+                        callback();
+                        modal.closeDialog();
+                    });
+                    buttonsDiv.insert(br);
+                    buttonsDiv.insert(buttonCreate);
+                }
+                return content;
+            }
+        });
+        new XWiki.widgets.RealtimeCreateModal();
+    }
 
     return module;
 });
