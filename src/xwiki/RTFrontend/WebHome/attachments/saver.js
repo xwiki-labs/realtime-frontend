@@ -322,6 +322,13 @@ define([
                     } else {
                         // otherwise say there was a remote save
                         // http://jira.xwiki.org/browse/RTWIKI-34
+                        if(mainConfig.userList) {
+                            var senderData = mainConfig.userList[sender];
+                            var senderName = senderData ? senderData.name : null;
+                            sender = (senderName) ? senderName.replace(/^.*-([^-]*)%2d[0-9]*$/, function(all, one) {
+                              return decodeURIComponent(one);
+                            }) : sender;
+                        }
                         lastSaved.mergeMessage(
                             'savedRemote',
                             [msgVersion, sender]);
@@ -368,12 +375,13 @@ define([
         During this process, a series of checks are made to reduce the number
         of unnecessary saves, as well as the number of unnecessary merges.
     */
-    var createSaver = Saver.create = function (netfluxNetwork, channel, realtime, config, demoMode) {
+    var createSaver = Saver.create = function (netfluxNetwork, channel, realtime, config, userList, demoMode) {
 
         getTextValue = config.getTextValue || null;
         setTextValue = config.setTextValue || null;
         var messages = config.messages;
         var language = mainConfig.language;
+        mainConfig.userList = userList;
 
         lastSaved.time = now();
         var mergeDialogCurrentlyDisplayed = false;
