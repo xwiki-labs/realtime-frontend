@@ -41,7 +41,7 @@
     #end
 ##
     #set ($mymap["latestVersion"] = $ancestorVersion)
-    #set ($mymap["previousVersionContent"] = $latestDocument.getContent())
+    #set ($mymap["previousVersionContent"] = $latestDocument.getContent()) ##TODO : convert if needed
 ##
     ## if O == A
     #if($ancestorContent == $latestContent)
@@ -89,6 +89,15 @@
 ##
         #set ($final = $stringtool.join($merged.getMerged(), " ").replace($placeholder, $escapetool.getNewline()))
 ##
+        #if ("$!{request.convertHTML}" == "1")
+            #set ($discard = $xcontext.setDoc($latestDocument.document))
+            #set ($source = {
+              'content': $final,
+              'syntax': $latestDocument.syntax
+            })
+            #set ($final = $xwiki.getDocument('CKEditor.ContentSheet').getRenderedContent().replaceAll("([\t\r\n]|(\s{2,}))",""))
+        #end
+##
         #set ($mymap["content"] = $final)
         #set ($mymap["merged"] = true)
         #set ($mymap["conflicts"] = $merged.getLog())
@@ -97,5 +106,8 @@
     #end
 #end
 ##
-$jsontool.serialize($mymap)
+#set($discard = $response.setContentType("application/json"))
+#set($out = $jsontool.serialize($mymap))
+$response.getOutputStream().print($out)
+$xcontext.setFinished(true)
 {{/velocity}}

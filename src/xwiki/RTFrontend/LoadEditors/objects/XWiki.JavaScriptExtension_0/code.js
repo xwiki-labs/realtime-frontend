@@ -26,6 +26,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         saved: "Saved: v{0}",
         'merge overwrite': "Overwrote the realtime session's content with the latest saved state",
         savedRemote: 'v{0} saved by {1}',
+        savedRemoteNoMerge: 'v{0} saved by {1} in {2} - Save here to merge the content.',
         conflictResolved: 'merge conflict resolved remotely, now v{0}',
         mergeDialog_prompt: "A change was made to the document outside of the realtime session, "+
             "and the server had difficulty merging it with your version. "+
@@ -93,8 +94,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         console.log("WARNING: XWiki js object not defined.");
         return false;
     }
-    // Not in edit mode?
-    if (!DEMO_MODE && window.XWiki.contextaction !== 'edit') { return false; }
 
     var getParameterByName = function (name, url) {
         if (!url) url = window.location.href;

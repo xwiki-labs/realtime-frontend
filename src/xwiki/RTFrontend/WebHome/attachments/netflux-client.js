@@ -76,6 +76,7 @@ define(function () {
         };
         ctx.requests[internal.jSeq] = chan;
         ctx.ws.send(JSON.stringify([internal.jSeq, 'JOIN', id]));
+        console.log(JSON.stringify([internal.jSeq, 'JOIN', id]));
 
         return new Promise(function (res, rej) {
             chan._.resolve = res;
@@ -138,7 +139,11 @@ define(function () {
                 }
                 req.resolve();
             } else if (msg[1] === 'ERROR') {
-                req.reject({ type: msg[2], message: msg[3] });
+                if (typeof req.reject === "function") {
+                    req.reject({ type: msg[2], message: msg[3] });
+                } else {
+                    console.error(msg);
+                }
             } else {
                 req.reject({ type: 'UNKNOWN', message: JSON.stringify(msg) });
             }

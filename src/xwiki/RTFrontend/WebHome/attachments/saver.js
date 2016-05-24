@@ -44,10 +44,13 @@ define([
         mainConfig.ajaxMergeUrl   =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
         mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
         mainConfig.language       = config.language;
+        mainConfig.messages       = config.messages;
         mainConfig.version        = config.version;
         mainConfig.chainpad       = config.chainpad;
         mainConfig.editorType     = config.editorType;
-        mainConfig.isHTML         = (config.editorType === 'rtwysiwyg');
+        mainConfig.isHTML         = config.isHTML;
+        mainConfig.mergeContent   = config.mergeContent;
+        mainConfig.editorName     = config.editorName;
         lastSaved.version = config.version;
     };
 
@@ -107,17 +110,17 @@ define([
           stats.convertHTML = 1;
         }
 
-        console.log("Posting with the following stats");
-        console.log(stats);
+        verbose("Posting with the following stats");
+        verbose(stats);
 
         $.ajax({
             url: url,
             method: 'POST',
             success: function (data) {
                 try {
-                    var merge=JSON.parse(data);
-
-                    window.ansuz_merge = merge;
+                    //var merge=JSON.parse(data);
+                    // data is already an "application/json"
+                    var merge = data;
                     var error = merge.conflicts &&
                         merge.conflicts.length &&
                         merge.conflicts[0].formattedMessage;
@@ -160,8 +163,8 @@ define([
         });
     };
 
-    var bumpVersion = function (webChannel, channel, cb) {
-        ajaxVersion(function (e, out) {
+    var bumpVersion = function (cb, versionData) {
+        var callback = function (e, out) {
             if (e) {
                 warn(e);
             } else if (out) {
@@ -169,12 +172,17 @@ define([
                 lastSaved.version = out.version;
                 lastSaved.content = out.content;
                 var contentHash = (mainConfig.chainpad && mainConfig.chainpad.hex_sha256) ? mainConfig.chainpad.hex_sha256(out.content) : "";
-                saveMessage(webChannel, channel, lastSaved.version, contentHash);
+                saveMessage(mainConfig.webChannel, mainConfig.channel, lastSaved.version, contentHash);
                 cb && cb(out);
             } else {
                 throw new Error();
             }
-        });
+        };
+        if (versionData) {
+            callback(null, versionData);
+        } else {
+            ajaxVersion(callback);
+        }
     };
 
     var getFormToken = Saver.getFormToken = function () {
@@ -238,7 +246,7 @@ define([
         debug("saved document"); // RT_event-on_save
         // show(saved(version))
         lastSaved.mergeMessage('saved', [version]);
-        var msg = [ISAVED, version, hash, mainConfig.editorType];
+        var msg = [ISAVED, mainConfig.userName, version, hash, mainConfig.editorType];
         wc.bcast(JSON.stringify(msg)).then(function() {
           // Send the message back to Chainpad once it is sent to the recipients.
           onMessage(JSON.stringify(msg), wc.myID);
@@ -264,7 +272,7 @@ define([
         new XWiki.widgets.ConfirmationBox(behave, param);
     };
 
-    var destroyDialog = function (cb) {
+    var destroyDialog = Saver.destroyDialog = function (cb) {
         var $box = $('.xdialog-box.xdialog-box-confirmation'),
             $question = $box.find('.question'),
             $content = $box.find('.xdialog-content');
@@ -286,162 +294,8 @@ define([
         lastSaved.wasEditedLocally = condition;
     };
 
-
-    var onMessage = function (data, sender) {
-        // set a flag so any concurrent processes know to abort
-        lastSaved.receivedISAVE = true;
-
-        /*  RT_event-on_isave_receive
-
-            clients update lastSaved.version when they perform a save,
-            then they send an ISAVED with the version
-            a single user might have multiple windows open, for some reason
-            but might still have different save cycles
-            checking whether the received version matches the local version
-            tells us whether the ISAVED was set by our *browser*
-            if not, we should treat it as foreign.
-        */
-
-        // msg : [ISAVED, version, hash, editorType]
-        var msg;
-        try { msg = JSON.parse(data); } catch (e) { console.log(e.stack);return; }
-        var msgType = msg[0];
-        var msgVersion = msg[1];
-        var msgHash = msg[2];
-        var msgEditor = msg[3];
-
-        if (msgType !== ISAVED) { return; }
-
-        if (msgEditor === mainConfig.editorType) {
-            if (lastSaved.version !== msgVersion) {
-                // a merge dialog might be open, if so, remove it and say as much
-                destroyDialog(function (dialogDestroyed) {
-                    if (dialogDestroyed) {
-                        // tell the user about the merge resolution
-                        lastSaved.mergeMessage('conflictResolved', [msgVersion]);
-                    } else {
-                        // otherwise say there was a remote save
-                        // http://jira.xwiki.org/browse/RTWIKI-34
-                        if(mainConfig.userList) {
-                            var senderData = mainConfig.userList[sender];
-                            var senderName = senderData ? senderData.name : null;
-                            sender = (senderName) ? senderName.replace(/^.*-([^-]*)%2d[0-9]*$/, function(all, one) {
-                              return decodeURIComponent(one);
-                            }) : sender;
-                        }
-                        lastSaved.mergeMessage(
-                            'savedRemote',
-                            [msgVersion, sender]);
-                    }
-                });
-
-                debug("A remote client saved and "+
-                    "incremented the latest common ancestor");
-
-                // update lastSaved attributes
-                lastSaved.wasEditedLocally = false;
-
-                // update the local latest Common Ancestor version string
-                lastSaved.version = msgVersion;
-
-                // remember the state of the textArea when last saved
-                // so that we can avoid additional minor versions
-                // there's a *tiny* race condition here
-                // but it's probably not an issue
-                lastSaved.content = getTextValue();
-            } else {
-                lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
-            }
-            lastSaved.time = now();
-        }
-        return false;
-    }; // end onMessage
-    /*
-        createSaver contains some of the more complicated logic in this script
-        clients check for remote changes on random intervals
-
-        if another client has saved outside of the realtime session, changes
-        are merged on the server using XWiki's threeway merge algo.
-
-        The changes are integrated into the local textarea, which replicates
-        across realtime sessions.
-
-        if the resulting state does not match the last saved content, then the
-        contents are saved as a new version.
-
-        Other members of the session are notified of the save, and the
-        iesulting new version. They then update their local state to match.
-
-        During this process, a series of checks are made to reduce the number
-        of unnecessary saves, as well as the number of unnecessary merges.
-    */
-    var createSaver = Saver.create = function (netfluxNetwork, channel, realtime, config, userList, demoMode) {
-
-        getTextValue = config.getTextValue || null;
-        setTextValue = config.setTextValue || null;
-        var messages = config.messages;
-        var language = mainConfig.language;
-        mainConfig.userList = userList;
-
-        lastSaved.time = now();
-        var mergeDialogCurrentlyDisplayed = false;
-
-        var onOpen = function(chan) {
-            var network = netfluxNetwork;
-            // originally implemented as part of 'saveRoutine', abstracted logic
-            // such that the merge/save algorithm can terminate with different
-            // callbacks for different use cases
-            var saveFinalizer = function (e, shouldSave) {
-                var toSave = getTextValue();
-                if (e) {
-                    warn(e);
-                    return;
-                } else if (shouldSave) {
-
-                    var options = {
-                        language:language
-                    };
-
-                    saveDocument(getTextValue(), options, function () {
-                        // cache this because bumpVersion will increment it
-                        var lastVersion = lastSaved.version;
-
-                        // update values in lastSaved
-                        updateLastSaved(toSave);
-
-                        // get document version
-                        bumpVersion(chan, channel, function (out){
-                            if (out.version === "1.1") {
-                                debug("Created document version 1.1");
-                            } else {
-                                debug("Version bumped from " + lastVersion +
-                                    " to " + out.version + ".");
-                            }
-                            lastSaved.mergeMessage('saved',[out.version]);
-                        });
-                    });
-                    return;
-                } else {
-                    // local content matches that of the latest version
-                    verbose("No save was necessary");
-                    lastSaved.content = toSave;
-                    // didn't save, don't need a callback
-                    bumpVersion(chan, channel);
-                    return;
-                }
-            };
-
-            var saveRoutine = function (andThen, force) {
-                // if this is ever true in your save routine, complain and abort
-                lastSaved.receivedISAVE = false;
-
-                var toSave = getTextValue();
-                if (lastSaved.content === toSave && !force ) {
-                    verbose("No changes made since last save. "+
-                        "Avoiding unnecessary commits");
-                    return;
-                }
-
+    var mergeRoutine = function (andThen) {
+        var messages = mainConfig.messages;
                 // post your current version to the server to see if it must merge
                 // remember the current state so you can check if it has changed.
                 var preMergeContent = getTextValue();
@@ -468,8 +322,8 @@ define([
                         return;
                     }
 
-                    toSave = merge.content;
-                    if (toSave === lastSaved.content) {
+                    mergedContent = merge.content;
+                    if (mergedContent === lastSaved.content) {
                         debug("Merging didn't result in a change.");
     /* FIXME merge on load isn't working
                         if (force) {
@@ -531,11 +385,11 @@ define([
                                         method: 'GET',
                                         dataType: 'json',
                                         success: function (data) {
-                                            setTextValue(data.content, function() {
+                                            setTextValue(data.content, true, function() {
                                                 debug("Overwrote the realtime session's content with the latest saved state");
-                                                bumpVersion(chan, channel, function () {
+                                                bumpVersion(function () {
                                                     lastSaved.mergeMessage('merge overwrite',[]);
-                                                });
+                                                }, null);
                                                 continuation(andThen);
                                             });
 
@@ -564,7 +418,7 @@ define([
                                 // walk the tree of hashes and if merge.previousVersionContent
                                 // exists, then this merge is quite possibly faulty
 
-                                if (realtime.wasEverState(merge.previousVersionContent)) {
+                                if (mainConfig.realtime.wasEverState(merge.previousVersionContent)) {
                                     debug("The server merged a version which already existed in the history. " +
                                         "Reversions shouldn't merge. Ignoring merge");
 
@@ -577,7 +431,7 @@ define([
                                 }
 
                                 // there were no errors or local changes push to the textarea
-                                setTextValue(toSave, function() {
+                                setTextValue(mergedContent, false, function() {
                                   // bump sharejs to force propogation. only if changed
                                   //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
                                   // TODO show message informing the user
@@ -592,6 +446,195 @@ define([
                         continuation(andThen);
                     }
                 });
+    };
+
+    var onMessage = function (data, sender) {
+        // set a flag so any concurrent processes know to abort
+        lastSaved.receivedISAVE = true;
+
+        /*  RT_event-on_isave_receive
+
+            clients update lastSaved.version when they perform a save,
+            then they send an ISAVED with the version
+            a single user might have multiple windows open, for some reason
+            but might still have different save cycles
+            checking whether the received version matches the local version
+            tells us whether the ISAVED was set by our *browser*
+            if not, we should treat it as foreign.
+        */
+
+        // msg : [ISAVED, version, hash, editorType]
+        var msg;
+        try { msg = JSON.parse(data); } catch (e) { warn(e.stack);return; }
+        var msgType = msg[0];
+        var msgSender = msg[1];
+        var msgVersion = msg[2];
+        var msgHash = msg[3];
+        var msgEditor = msg[4];
+
+        if (msgType !== ISAVED) { return; }
+
+        var displaySaverName = function (isMerged) {
+            // a merge dialog might be open, if so, remove it and say as much
+            destroyDialog(function (dialogDestroyed) {
+                if (dialogDestroyed) {
+                    // tell the user about the merge resolution
+                    lastSaved.mergeMessage('conflictResolved', [msgVersion]);
+                } else {
+                    // otherwise say there was a remote save
+                    // http://jira.xwiki.org/browse/RTWIKI-34
+                    if(mainConfig.userList) {
+                        var senderData = mainConfig.userList[sender];
+                        var senderName = senderData ? senderData.name : msgSender;
+                        sender = (senderName) ? senderName.replace(/^.*-([^-]*)%2d[0-9]*$/, function(all, one) {
+                          return decodeURIComponent(one);
+                        }) : sender;
+                    }
+                    if (isMerged) {
+                        lastSaved.mergeMessage(
+                        'savedRemote',
+                        [msgVersion, sender]);
+                    } else {
+                        lastSaved.mergeMessage(
+                        'savedRemoteNoMerge',
+                        [msgVersion, sender, mainConfig.editorName]);
+                    }
+                }
+            });
+        };
+
+        if (msgEditor === mainConfig.editorType) {
+            if (lastSaved.version !== msgVersion) {
+                displaySaverName(true);
+
+                debug("A remote client saved and "+
+                    "incremented the latest common ancestor");
+
+                // update lastSaved attributes
+                lastSaved.wasEditedLocally = false;
+
+                // update the local latest Common Ancestor version string
+                lastSaved.version = msgVersion;
+
+                // remember the state of the textArea when last saved
+                // so that we can avoid additional minor versions
+                // there's a *tiny* race condition here
+                // but it's probably not an issue
+                lastSaved.content = getTextValue();
+            } else {
+                lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+            }
+            lastSaved.time = now();
+        }
+        else {
+            displaySaverName(false);
+            /*lastSaved.receivedISAVE = false;
+            mergeRoutine(function(e) {
+                setLocalEditFlag(false);
+                lastSaved.version = msgVersion;
+                lastSaved.content = getTextValue();
+                if(e) { warn(e); }
+            });*/
+        }
+        return false;
+    }; // end onMessage
+    /*
+        createSaver contains some of the more complicated logic in this script
+        clients check for remote changes on random intervals
+
+        if another client has saved outside of the realtime session, changes
+        are merged on the server using XWiki's threeway merge algo.
+
+        The changes are integrated into the local textarea, which replicates
+        across realtime sessions.
+
+        if the resulting state does not match the last saved content, then the
+        contents are saved as a new version.
+
+        Other members of the session are notified of the save, and the
+        iesulting new version. They then update their local state to match.
+
+        During this process, a series of checks are made to reduce the number
+        of unnecessary saves, as well as the number of unnecessary merges.
+    */
+    var createSaver = Saver.create = function (config) {
+
+        getTextValue = config.getTextValue || null;
+        setTextValue = config.setTextValue || null;
+        var language = mainConfig.language;
+        mainConfig.userList = config.userList;
+        var realtime = mainConfig.realtime = config.realtime;
+        mainConfig.userName = config.userName;
+        var netfluxNetwork = config.network;
+        var channel = mainConfig.channel = config.channel;
+        var demoMode = config.demoMode;
+
+        lastSaved.time = now();
+        var mergeDialogCurrentlyDisplayed = false;
+
+        var onOpen = function(chan) {
+            var network = netfluxNetwork;
+            mainConfig.webChannel = chan;
+            // originally implemented as part of 'saveRoutine', abstracted logic
+            // such that the merge/save algorithm can terminate with different
+            // callbacks for different use cases
+            var saveFinalizer = function (e, shouldSave) {
+                var toSave = getTextValue();
+                if (e) {
+                    warn(e);
+                    return;
+                } else if (shouldSave) {
+
+                    var options = {
+                        language:language
+                    };
+
+                    saveDocument(getTextValue(), options, function () {
+                        // cache this because bumpVersion will increment it
+                        var lastVersion = lastSaved.version;
+
+                        // update values in lastSaved
+                        updateLastSaved(toSave);
+
+                        // get document version
+                        bumpVersion(function (out){
+                            if (out.version === "1.1") {
+                                debug("Created document version 1.1");
+                            } else {
+                                debug("Version bumped from " + lastVersion +
+                                    " to " + out.version + ".");
+                            }
+                            lastSaved.mergeMessage('saved',[out.version]);
+                        }, null);
+                    });
+                    return;
+                } else {
+                    // local content matches that of the latest version
+                    verbose("No save was necessary");
+                    lastSaved.content = toSave;
+                    // didn't save, don't need a callback
+                    bumpVersion();
+                    return;
+                }
+            };
+
+            var saveRoutine = function (andThen, force) {
+                // if this is ever true in your save routine, complain and abort
+                lastSaved.receivedISAVE = false;
+
+                var toSave = getTextValue();
+                if (lastSaved.content === toSave && !force ) {
+                    verbose("No changes made since last save. "+
+                        "Avoiding unnecessary commits");
+                    return;
+                }
+
+                if (mainConfig.mergeContent) {
+                    mergeRoutine(andThen);
+                }
+                else {
+                    andThen(null, true);
+                }
             }; // end saveRoutine
 
             var saveButtonAction = function (cont) {
@@ -671,7 +714,7 @@ define([
                             lastSaved.onReceiveOwnIsave = null;
                         };
                         // bump the version, fire your isaved
-                        bumpVersion(chan, channel, function (out) {
+                        bumpVersion(function (out) {
                             if (out.version === "1.1") {
                                 debug("Created document version 1.1");
                             } else {
@@ -679,7 +722,7 @@ define([
                                     " to " + out.version + ".");
                             }
                             lastSaved.mergeMessage("saved", [out.version]);
-                        });
+                        }, out);
                     }
                 });
                 return true;
