@@ -112,7 +112,8 @@ define([
             if (config.onReady) {
                 config.onReady({
                     realtime: realtime,
-                    leave: wc.leave
+                    network: network,
+                    userList: userList
                 });
             }
         };

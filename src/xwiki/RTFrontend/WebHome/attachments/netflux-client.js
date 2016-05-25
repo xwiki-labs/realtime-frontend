@@ -76,7 +76,6 @@ define(function () {
         };
         ctx.requests[internal.jSeq] = chan;
         ctx.ws.send(JSON.stringify([internal.jSeq, 'JOIN', id]));
-        console.log(JSON.stringify([internal.jSeq, 'JOIN', id]));
 
         return new Promise(function (res, rej) {
             chan._.resolve = res;
