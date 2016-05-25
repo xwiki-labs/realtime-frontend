@@ -190,7 +190,6 @@ define([
     // http://jira.xwiki.org/browse/RTWIKI-29
     var saveDocument = function (data, andThen) {
         /* RT_event-on_save */
-        debug("saving document...");
 
         var defaultData = {
             // title if can be done realtime
@@ -777,7 +776,7 @@ define([
             mainConfig.webChannel.leave();
             delete mainConfig.webChannel;
         }
-        if (mainConfig.autosaveTimeout) { console.log('clear to'); clearTimeout(mainConfig.autosaveTimeout); }
+        if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
     }
 
     Saver.setLastSavedContent = function (content) {
