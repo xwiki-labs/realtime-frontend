@@ -24,8 +24,6 @@ define([
 
     var mainConfig = Saver.mainConfig = {};
 
-    var ErrorBox;
-
     var lastSaved = Saver.lastSaved = {
         content: '',
         time: 0,

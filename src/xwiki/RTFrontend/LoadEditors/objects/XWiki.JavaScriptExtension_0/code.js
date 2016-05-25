@@ -105,7 +105,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return decodeURIComponent(results[2].replace(/\+/g, " "));
     };
 
-    var documentReference = xm.documentReference+'' || xm.wiki+':'+xm.document;
+    var documentReference = xm.documentReference ? xm.documentReference+'' : xm.wiki+':'+xm.document;
 
     var language, version;
     var languageSelector = $('#realtime-frontend-getversion');
