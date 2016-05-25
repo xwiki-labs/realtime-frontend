@@ -211,7 +211,7 @@ define([
             if (Object.keys(defaultData).indexOf(name) !== -1) { return false; }
             else { return true; }
         }).join('&');
-        data += Object.toQueryString(defaultData);
+        data += '&'+Object.toQueryString(defaultData);
 
         $.ajax({
             url: window.docsaveurl,
@@ -240,7 +240,7 @@ define([
         debug("saved document"); // RT_event-on_save
         // show(saved(version))
         lastSaved.mergeMessage('saved', [version]);
-        var msg = [ISAVED, mainConfig.userName, version, hash, mainConfig.editorType];
+        var msg = [ISAVED, mainConfig.userName, version, hash, mainConfig.editorType, mainConfig.editorName];
         wc.bcast(JSON.stringify(msg)).then(function() {
           // Send the message back to Chainpad once it is sent to the recipients.
           onMessage(JSON.stringify(msg), wc.myID);
@@ -465,6 +465,7 @@ define([
         var msgVersion = msg[2];
         var msgHash = msg[3];
         var msgEditor = msg[4];
+        var msgEditorName = msg[5];
 
         if (msgType !== ISAVED) { return; }
 
@@ -491,7 +492,7 @@ define([
                     } else {
                         lastSaved.mergeMessage(
                         'savedRemoteNoMerge',
-                        [msgVersion, sender, mainConfig.editorName]);
+                        [msgVersion, sender, msgEditorName]);
                     }
                 }
             });
