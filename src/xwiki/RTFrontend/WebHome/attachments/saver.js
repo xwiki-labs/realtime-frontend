@@ -25,7 +25,6 @@ define([
     var mainConfig = Saver.mainConfig = {};
 
     var ErrorBox;
-    var getTextValue, setTextValue;
 
     var lastSaved = Saver.lastSaved = {
         content: '',
@@ -41,8 +40,8 @@ define([
     };
 
     var configure = Saver.configure = function (config) {
-        mainConfig.ajaxMergeUrl   =  config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
-        mainConfig.ajaxVersionUrl =  config.ajaxVersionUrl;
+        mainConfig.ajaxMergeUrl   = config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
+        mainConfig.ajaxVersionUrl = config.ajaxVersionUrl;
         mainConfig.language       = config.language;
         mainConfig.messages       = config.messages;
         mainConfig.version        = config.version;
@@ -191,14 +190,13 @@ define([
 
 
     // http://jira.xwiki.org/browse/RTWIKI-29
-    var saveDocument = function (content, config, andThen) {
+    var saveDocument = function (data, andThen) {
         /* RT_event-on_save */
         debug("saving document...");
 
-        var data = {
+        var defaultData = {
             // title if can be done realtime
             xredirect: '',
-            content: content,
             xeditaction: 'edit',
             // TODO make this translatable
             comment: 'Auto-Saved by Realtime Session',
@@ -209,15 +207,13 @@ define([
             language: mainConfig.language
         };
 
-        if (mainConfig.isHTML) {
-            data.RequiresHTMLConversion = "content";
-            data.content_syntax = "xwiki/2.1";
-        }
-
-        // override default data with configuration
-        Object.keys(config).forEach(function (key) {
-            data[key] = config[key];
-        });
+        // Remove from the data the properties we want to override.
+        data.split('&').filter(function (arg) {
+            var name = (arg.split('=').length > 1) ? arg.split('=')[0] : arg;
+            if (Object.keys(defaultData).indexOf(name) !== -1) { return false; }
+            else { return true; }
+        }).join('&');
+        data += Object.toQueryString(defaultData);
 
         $.ajax({
             url: window.docsaveurl,
@@ -298,8 +294,8 @@ define([
         var messages = mainConfig.messages;
                 // post your current version to the server to see if it must merge
                 // remember the current state so you can check if it has changed.
-                var preMergeContent = getTextValue();
-                ajaxMerge(getTextValue(), function (err, merge) {
+                var preMergeContent = mainConfig.getTextValue();
+                ajaxMerge(preMergeContent, function (err, merge) {
                     if (err) {
                         if (typeof merge === 'undefined') {
                             warn("The ajax merge API did not return an object. "+
@@ -385,7 +381,7 @@ define([
                                         method: 'GET',
                                         dataType: 'json',
                                         success: function (data) {
-                                            setTextValue(data.content, true, function() {
+                                            mainConfig.setTextValue(data.content, true, function() {
                                                 debug("Overwrote the realtime session's content with the latest saved state");
                                                 bumpVersion(function () {
                                                     lastSaved.mergeMessage('merge overwrite',[]);
@@ -405,7 +401,7 @@ define([
                             // when the merge dialog is answered it will continue
                         } else {
                             // it merged and there were no errors
-                            if (preMergeContent !== getTextValue()) {
+                            if (preMergeContent !== mainConfig.getTextValue()) {
                                 /* but there have been changes since merging
                                     don't overwrite if there have been changes while merging
                                     http://jira.xwiki.org/browse/RTWIKI-37 */
@@ -431,7 +427,7 @@ define([
                                 }
 
                                 // there were no errors or local changes push to the textarea
-                                setTextValue(mergedContent, false, function() {
+                                mainConfig.setTextValue(mergedContent, false, function() {
                                   // bump sharejs to force propogation. only if changed
                                   //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
                                   // TODO show message informing the user
@@ -520,7 +516,7 @@ define([
                 // so that we can avoid additional minor versions
                 // there's a *tiny* race condition here
                 // but it's probably not an issue
-                lastSaved.content = getTextValue();
+                lastSaved.content = mainConfig.getTextValue();
             } else {
                 lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
             }
@@ -559,12 +555,13 @@ define([
     */
     var createSaver = Saver.create = function (config) {
 
-        getTextValue = config.getTextValue || null;
-        setTextValue = config.setTextValue || null;
-        var language = mainConfig.language;
-        mainConfig.userList = config.userList;
-        var realtime = mainConfig.realtime = config.realtime;
+        mainConfig.getTextValue = config.getTextValue || null;
+        mainConfig.getSaveValue = config.getSaveValue || null;
+        mainConfig.setTextValue = config.setTextValue || null;
         mainConfig.userName = config.userName;
+        mainConfig.userList = config.userList;
+        var language = mainConfig.language;
+        var realtime = mainConfig.realtime = config.realtime;
         var netfluxNetwork = config.network;
         var channel = mainConfig.channel = config.channel;
         var demoMode = config.demoMode;
@@ -579,17 +576,13 @@ define([
             // such that the merge/save algorithm can terminate with different
             // callbacks for different use cases
             var saveFinalizer = function (e, shouldSave) {
-                var toSave = getTextValue();
+                var toSave = mainConfig.getTextValue();
                 if (e) {
                     warn(e);
                     return;
                 } else if (shouldSave) {
 
-                    var options = {
-                        language:language
-                    };
-
-                    saveDocument(getTextValue(), options, function () {
+                    saveDocument(mainConfig.getSaveValue(), function () {
                         // cache this because bumpVersion will increment it
                         var lastVersion = lastSaved.version;
 
@@ -622,7 +615,7 @@ define([
                 // if this is ever true in your save routine, complain and abort
                 lastSaved.receivedISAVE = false;
 
-                var toSave = getTextValue();
+                var toSave = mainConfig.getTextValue();
                 if (lastSaved.content === toSave && !force ) {
                     verbose("No changes made since last save. "+
                         "Avoiding unnecessary commits");
@@ -685,7 +678,7 @@ define([
 
                 // cache the last version
                 var lastVersion = lastSaved.version;
-                var toSave = getTextValue();
+                var toSave = mainConfig.getTextValue();
 
                 // update your content
                 updateLastSaved(toSave);
