@@ -237,6 +237,7 @@ define([
     var ISAVED = 1;
     // sends an ISAVED message
     var saveMessage=function (wc, channel, version, hash) {
+        if (!wc) { return; }
         debug("saved document"); // RT_event-on_save
         // show(saved(version))
         lastSaved.mergeMessage('saved', [version]);
@@ -726,13 +727,11 @@ define([
             });
 
             // TimeOut
-            var to;
-
             var check = function () {
-                if (to) { clearTimeout(to); }
+                if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
                 verbose("createSaver.check");
                 var periodDuration = Math.random() * SAVE_DOC_CHECK_CYCLE;
-                to = setTimeout(check, periodDuration);
+                mainConfig.autosaveTimeout = setTimeout(check, periodDuration);
 
                 verbose("Will attempt to save again in " + periodDuration +"ms.");
 
@@ -759,7 +758,7 @@ define([
             check();
 
             network.on('disconnect', function (evt) {
-                clearTimeout(to);
+                clearTimeout(mainConfig.autosaveTimeout);
             });
         }
 
@@ -770,6 +769,16 @@ define([
             warn(err);
         });
     }; // END createSaver
+
+    Saver.stop = function() {
+        mainConfig.mergeContent = false;
+        if (mainConfig.realtime) { mainConfig.realtime.abort(); }
+        if (mainConfig.webChannel) {
+            mainConfig.webChannel.leave();
+            delete mainConfig.webChannel;
+        }
+        if (mainConfig.autosaveTimeout) { console.log('clear to'); clearTimeout(mainConfig.autosaveTimeout); }
+    }
 
     Saver.setLastSavedContent = function (content) {
         lastSaved.content = content;
