@@ -57,6 +57,7 @@ define([
         var messagesHistory = [];
         var chainpadAdapter = {};
         var realtime;
+        var network = config.network;
 
         var parseMessage = function (msg) {
             var res ={};
@@ -113,7 +114,8 @@ define([
                 config.onReady({
                     realtime: realtime,
                     network: network,
-                    userList: userList
+                    userList: userList,
+                    myId: wc.myID
                 });
             }
         };
@@ -283,16 +285,33 @@ define([
             return webChannel;
         };
 
-        // Connect to the WebSocket channel
-        Netflux.connect(websocketUrl).then(function(network) {
+        var joinSession = function (endPoint, cb) {
+            // a websocket URL has been provided
+            // connect to it with Netflux.
+            if (typeof(endPoint) === 'string') {
+                Netflux.connect(endPoint).then(cb);
+            } else if (typeof(endPoint.then) ==- 'function') {
+                // a netflux network promise was provided
+                // connect to it and use a channel
+                endPoint.then(cb);
+            } else {
+                // assume it's a network and try to connect.
+                cb(network);
+            }
+        };
+
+        /*  Connect to the Netflux network, or fall back to a WebSocket
+            in theory this lets us connect to more netflux channels using only
+            one network. */
+        joinSession(network || websocketUrl, function (network) {
             // pass messages that come out of netflux into our local handler
 
-            network.on('disconnect', function (evt) {
-                // TODO also abort if Netflux times out
-                // that will be managed in Netflux-client.js
+            toReturn.network = network;
+
+            network.on('disconnect', function (reason) {
                 if (config.onAbort) {
                     config.onAbort({
-                        reason: evt.reason
+                        reason: reason
                     });
                 }
             });

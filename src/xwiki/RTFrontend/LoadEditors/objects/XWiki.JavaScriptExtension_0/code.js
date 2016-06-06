@@ -49,6 +49,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_saver: "$document.getAttachmentURL('saver.js')",
         RTFrontend_interface: "$document.getAttachmentURL('interface.js')",
         RTFrontend_toolbar: "$document.getAttachmentURL('toolbar.js')",
+        RTFrontend_userdata: "$document.getAttachmentURL('userdata.js')",
 
         RTFrontend_cursor: "$document.getAttachmentURL('cursor.js')",
         RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
