@@ -158,7 +158,7 @@ define([
 
         var connected = false;
 
-        userList.onChange = function(newUserData) {
+        userList.onChange.push(function(newUserData) {
           var users = userList.users;
           if (users.indexOf(myUserName) !== -1) { connected = true; }
           if (!connected) { return; }
@@ -166,7 +166,7 @@ define([
             userData = newUserData;
           }
           updateUserList(myUserName, userListElement, users, userData);
-        };
+        });
 
         var ks = function () {
             if (connected) { kickSpinner(spinner, false); }

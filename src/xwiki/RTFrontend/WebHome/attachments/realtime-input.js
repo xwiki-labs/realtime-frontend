@@ -40,6 +40,7 @@ define([
     var start = module.exports.start =
         function (config)
     {
+        console.log(config);
         var websocketUrl = config.websocketURL;
         var userName = config.userName;
         var channel = config.channel;
@@ -84,7 +85,12 @@ define([
         };
 
         var userList = {
-            onChange : function() {},
+            onChange : [],
+            change : function(newData) {
+                userList.onChange.forEach(function (el) {
+                    el(newData);
+                });
+            },
             users: []
         };
 
@@ -95,10 +101,14 @@ define([
             if(index === -1) {
                 userList.users.push(peer);
             }
-            userList.onChange();
+            userList.change();
         };
 
         var onReady = function(wc, network) {
+            // Trigger onReady only if not ready yet. This is important because the history keeper sends a direct
+            // message through "network" when it is synced, and it triggers onReady for each channel joined.
+            if (!initializing) { return; }
+
             if(config.setMyID) {
                 config.setMyID({
                     myID: wc.myID
@@ -156,7 +166,7 @@ define([
           if(index !== -1) {
             userList.users.splice(index, 1);
           }
-          userList.onChange();
+          userList.change();
         };
 
         // shim between chainpad and netflux

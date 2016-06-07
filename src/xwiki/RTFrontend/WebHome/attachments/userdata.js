@@ -9,30 +9,39 @@ define(['RTFrontend_realtime_input',
     var warn = function (x) {};
     var debug = function (x) {};
     debug = function (x) { console.log(x); };
-    warn = function (x) { console.log(x); };
+    //warn = function (x) { console.log(x); };
 
     var module = {};
 
-    var start = module.start = function(network, key, config) {
+    var start = module.start = function(network, key, configData) {
 
         var initializing = true;
-        var userData = {};
-        var myId = config.myId;
-        var userName = config.userName;
-        var toolbarChange = config.toolbarChange;
+        var userData = window.userData = {};
+        var myId = configData.myId;
+        var userName = configData.userName;
+        var onChange = configData.onChange;
         if (!myId || !userName) { warn("myId and userName are required!"); return; }
+
+        var cursor;
+        var editor = configData.editor;
+        var oldcursor;
+        if (editor && typeof configData.getCursor === "function") {
+            cursor = configData.getCursor;
+            oldcursor = cursor();
+        }
 
         userData[myId] = {
             name : userName
         };
+        if (oldcursor) { userData[myId]['cursor_'+editor] = oldcursor }
 
         var config = {
             initialState : '{}',
             network : network,
             userName : userName || '',
             channel : key,
-            crypto : config.crypto || null,
-            transformFunction : config.transformFunction,
+            crypto : configData.crypto || null,
+            transformFunction : configData.transformFunction,
         };
 
         var updateUserData = function (textData) {
@@ -41,7 +50,7 @@ define(['RTFrontend_realtime_input',
                 for (var key in json) {
                     userData[key] = json[key];
                 }
-                if (toolbarChange && typeof toolbarChange === "function") { toolbarChange(userData); }
+                if (onChange && typeof onChange === "function") { onChange(userData); }
             } catch (e) {
                 console.error(e);
             }
@@ -77,7 +86,21 @@ define(['RTFrontend_realtime_input',
             }
         };
 
+        if (typeof cursor !== "undefined") {
+            var to = setInterval(function () {
+                var newcursor = cursor();
+                if (oldcursor !== newcursor) {
+                    userData[myId]['cursor_'+editor] = newcursor;
+                    oldcursor = newcursor;
+                    onChange(userData);
+                    onLocal();
+                }
+            }, 3000);
+        }
+
         realtimeInput.start(config);
+
+        return userData;
     };
 
     return module;
