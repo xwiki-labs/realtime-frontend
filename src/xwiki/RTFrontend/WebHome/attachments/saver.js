@@ -295,7 +295,7 @@ define([
                 var preMergeContent = mainConfig.getTextValue();
                 ajaxMerge(preMergeContent, function (err, merge) {
                     if (err) {
-                        if (typeof merge === 'undefined') {
+                        if (!merge || typeof merge === 'undefined') {
                             warn("The ajax merge API did not return an object. "+
                                 "Something went wrong");
                             warn(err);
