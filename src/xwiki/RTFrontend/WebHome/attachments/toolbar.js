@@ -1,6 +1,7 @@
 define([
+    'jquery',
     'RTFrontend_messages'
-], function (Messages) {
+], function ($, Messages) {
 
     /** Id of the element for getting debug info. */
     var DEBUG_LINK_CLS = 'rt-debug-link';
@@ -48,6 +49,27 @@ define([
             '.rt-spinner {',
             '    float: left;',
             '}',
+            '.rt-user-link {',
+            '    cursor: pointer;',
+            '    text-decoration: underline;',
+            '    color: #220FDD;',
+            '}',
+            '.rt-user-avatar {',
+            '    vertical-align: bottom;',
+            '    border: 1px solid #AAAAAA;',
+            '}',
+            '.rt-user-fake-avatar {',
+            '    width: 40px;',
+            '    height: 40px;',
+            '    line-height: 40px;',
+            '    display: inline-block;',
+            '    text-align: center;',
+            '    background: #D5D5D5;',
+            '    color: #3333FF;',
+            '    font-size: 35px;',
+            '    cursor: pointer;',
+            '    border: 1px solid #AAAAAA;',
+            '}',
             '#secret-merge {',
             '   opacity: 0;',
             '}',
@@ -86,6 +108,7 @@ define([
     var getOtherUsers = function(myUserName, userList, userData) {
       var i = 0;
       var list = '';
+      window.mydata = userData;
       userList.forEach(function(user) {
         if(user !== myUserName) {
           var data = (userData) ? (userData[user] || null) : null;
@@ -95,7 +118,13 @@ define([
             }) : null;
           if(userName) {
             if(i === 0) { list = ' : '; }
-            list += userName + ', ';
+            var display = userName;
+            if (userData[user] && userData[user].avatar) {
+                display = '<img class="rt-user-avatar" src="' + userData[user].avatar + '?width=40" alt="" title="' + userName + '" />';
+            } else if (userData[user] && userData[user].avatar === "") {
+                display = '<span class="rt-user-fake-avatar" title="' + userName + '">' + userName.substr(0,1) + '</span>';
+            }
+            list += '<span class="rt-user-link" data-id="' + user + '">' + display + '</span>, ';
             i++;
           }
         }
@@ -116,6 +145,11 @@ define([
         } else {
             listElement.innerHTML = Messages.editingWith + ' ' + (userList.length - 1) + ' ' + Messages.otherPeople + getOtherUsers(myUserName, userList, userData);
         }
+        $('.rt-user-link').off('click');
+        $('.rt-user-link').on('click' , function() {
+            var basehref = $('iframe')[0].contentWindow.location.href.split('#')[0] || "";
+            $('iframe')[0].contentWindow.location.href = basehref + "#rt-user-" + $(this).attr('data-id');
+        });
     };
 
     var createLagElement = function ($container) {
@@ -158,7 +192,7 @@ define([
 
         var connected = false;
 
-        userList.onChange.push(function(newUserData) {
+        userList.change.push(function(newUserData) {
           var users = userList.users;
           if (users.indexOf(myUserName) !== -1) { connected = true; }
           if (!connected) { return; }

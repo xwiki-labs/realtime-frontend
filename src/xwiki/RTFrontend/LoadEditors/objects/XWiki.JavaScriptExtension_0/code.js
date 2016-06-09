@@ -82,6 +82,17 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     #set ($multiple = $!xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass').getProperty('allowMultipleEditors').value)
     var ALLOW_MULTIPLE_EDITORS = #if ("$multiple" != "1") false #else true #end;
 
+    ## Current user avatar
+    #set ($myAvatar = $xwiki.getUserName($xcontext.getUser(), '$avatar', false))
+    #if ("$!myAvatar" != "$avatar")
+        #set ($userRef = $xcontext.getUserReference())
+        #set ($userDoc = $xwiki.getDocument($userRef))
+        #set ($avatarUrl = $userDoc.getAttachmentURL($myAvatar))
+    #else
+        #set ($avatarUrl = "")
+    #end
+    var userAvatarUrl = '$avatarUrl';
+
     // END_VELOCITY
 
     var multiple = (!ALLOW_MULTIPLE_EDITORS) ? "&multiple=0" : "";
@@ -180,7 +191,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             language: language,
             reference: documentReference,
             DEMO_MODE: DEMO_MODE,
-            LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW
+            LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW,
+            userAvatarURL: userAvatarUrl
         };
     };
 
@@ -315,7 +327,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             }
         });
         new XWiki.widgets.RealtimeCreateModal();
-    }
+    };
 
     return module;
 });

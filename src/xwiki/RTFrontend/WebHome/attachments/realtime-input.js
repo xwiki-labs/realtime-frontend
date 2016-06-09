@@ -40,7 +40,6 @@ define([
     var start = module.exports.start =
         function (config)
     {
-        console.log(config);
         var websocketUrl = config.websocketURL;
         var userName = config.userName;
         var channel = config.channel;
@@ -85,9 +84,9 @@ define([
         };
 
         var userList = {
-            onChange : [],
-            change : function(newData) {
-                userList.onChange.forEach(function (el) {
+            change : [],
+            onChange : function(newData) {
+                userList.change.forEach(function (el) {
                     el(newData);
                 });
             },
@@ -101,7 +100,7 @@ define([
             if(index === -1) {
                 userList.users.push(peer);
             }
-            userList.change();
+            userList.onChange();
         };
 
         var onReady = function(wc, network) {
@@ -166,7 +165,7 @@ define([
           if(index !== -1) {
             userList.users.splice(index, 1);
           }
-          userList.change();
+          userList.onChange();
         };
 
         // shim between chainpad and netflux

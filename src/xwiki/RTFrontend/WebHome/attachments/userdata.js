@@ -17,9 +17,13 @@ define(['RTFrontend_realtime_input',
 
         var initializing = true;
         var userData = window.userData = {};
+
+        if (!configData) { return {}; }
+
         var myId = configData.myId;
-        var userName = configData.userName;
+        var userName = configData.userName || "";
         var onChange = configData.onChange;
+        var userAvatar = configData.userAvatar;
         if (!myId || !userName) { warn("myId and userName are required!"); return; }
 
         var cursor;
@@ -34,6 +38,7 @@ define(['RTFrontend_realtime_input',
             name : userName
         };
         if (oldcursor) { userData[myId]['cursor_'+editor] = oldcursor }
+        if (typeof userAvatar === "string") { userData[myId].avatar = userAvatar; }
 
         var config = {
             initialState : '{}',
