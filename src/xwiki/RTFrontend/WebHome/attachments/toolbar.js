@@ -55,18 +55,20 @@ define([
             '    color: #220FDD;',
             '}',
             '.rt-user-avatar {',
-            '    vertical-align: bottom;',
+            '    vertical-align: top;',
             '    border: 1px solid #AAAAAA;',
+            '    cursor: pointer;',
             '}',
             '.rt-user-fake-avatar {',
-            '    width: 40px;',
-            '    height: 40px;',
-            '    line-height: 40px;',
+            '    width: 25px;',
+            '    height: 25px;',
+            '    line-height: 25px;',
             '    display: inline-block;',
             '    text-align: center;',
-            '    background: #D5D5D5;',
+            '    background: #CCCCFF;',
             '    color: #3333FF;',
-            '    font-size: 35px;',
+            '    font-size: 20px;',
+            '    font-weight: bold;',
             '    cursor: pointer;',
             '    border: 1px solid #AAAAAA;',
             '}',
@@ -119,12 +121,27 @@ define([
           if(userName) {
             if(i === 0) { list = ' : '; }
             var display = userName;
-            if (userData[user] && userData[user].avatar) {
-                display = '<img class="rt-user-avatar" src="' + userData[user].avatar + '?width=40" alt="" title="' + userName + '" />';
-            } else if (userData[user] && userData[user].avatar === "") {
-                display = '<span class="rt-user-fake-avatar" title="' + userName + '">' + userName.substr(0,1) + '</span>';
-            }
-            list += '<span class="rt-user-link" data-id="' + user + '">' + display + '</span>, ';
+            var comma = ',';
+            try {
+                var config = JSON.parse($('#realtime-frontend-getconfig').html());
+                var displayConfig = config.toolbarUserlist;
+                display = "";
+                if (displayConfig === "avatar" || displayConfig === "both") {
+                    if (userData[user] && userData[user].avatar) {
+                        display += '<img class="rt-user-avatar" src="' + userData[user].avatar + '?width=25" alt="" title="' + userName + '" />';
+                    }
+                    else if (userData[user] && userData[user].avatar === "") {
+                        display += '<span class="rt-user-fake-avatar" title="' + userName + '">' + userName.substr(0,1) + '</span>';
+                    }
+                }
+                if (displayConfig === "name" || displayConfig === "both") {
+                    display += userName;
+                }
+                if (displayConfig === "avatar") {
+                    comma = "";
+                }
+            } catch (e) { console.error(e); }
+            list += '<span class="rt-user-link" data-id="' + user + '">' + display + '</span>' + comma + ' ';
             i++;
           }
         }

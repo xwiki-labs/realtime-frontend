@@ -72,16 +72,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','get')?outputSyntax=plain&"
     };
 
-    // Prevent users from forcing a realtime editor if another type of realtime session is opened
-    // in the same document. If set to true (not recommended), users are able to choose the editor
-    // they want and when an editor is saving, it checks first if the content need to be merged and
-    // if there is a merge issue.
-    // In case of merge issue, the user has to choose between keeping his content or the content
-    // saved by the remote user.
-    #set ($webhomeRef = $services.model.createDocumentReference("", "RTFrontend", "WebHome"))
-    #set ($multiple = $!xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass').getProperty('allowMultipleEditors').value)
-    var ALLOW_MULTIPLE_EDITORS = #if ("$multiple" != "1") false #else true #end;
-
     ## Current user avatar
     #set ($myAvatar = $xwiki.getUserName($xcontext.getUser(), '$avatar', false))
     #if ("$!myAvatar" != "$avatar")
@@ -93,9 +83,16 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     #end
     var userAvatarUrl = '$avatarUrl';
 
-    // END_VELOCITY
+    ## Configurable values
+    #set ($webhomeRef = $services.model.resolveDocument("RTFrontend.WebHome"))
+    #set ($configObj = $!xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass'))
 
-    var multiple = (!ALLOW_MULTIPLE_EDITORS) ? "&multiple=0" : "";
+    #set ($toolbarValue = $configObj.getProperty('toolbarUserlist').value)
+    var configToolbarUserlist = module.toolbarUserlist = "$!toolbarValue";
+    #set ($marginValue = $configObj.getProperty('marginAvatar').value)
+    var configMarginAvatar = module.marginAvatar = "$!marginValue";
+
+    // END_VELOCITY
 
     if (!WEBSOCKET_URL) {
         console.log("The provided websocketURL was empty, aborting attempt to" +
@@ -132,12 +129,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         language = languageSelector[0] && languageSelector[0].value;
         version = $('html').data('xwiki-version');
     }
-    // if(!language) {
-        // language = getParameterByName('language');
-    // }
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
-    //PATHS.RTFrontend_GetKey = PATHS.RTFrontend_GetKey.replace(/\.js$/, '')+'?minify=false&reference=' + documentReference + '&language=' + language + multiple + '&editorTypes=';
-    GetKey_data = 'minify=false&reference=' + encodeURIComponent(documentReference) + '&language=' + language + multiple + '&editorTypes=';
 
     for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
     require.config({paths:PATHS});
