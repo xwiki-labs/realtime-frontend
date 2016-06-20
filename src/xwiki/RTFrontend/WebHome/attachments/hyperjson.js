@@ -1,10 +1,14 @@
-define([], function () {
-    // this makes recursing a lot simpler
+(function () {
+    var Hyperjson = {};
     var isArray = function (A) {
         return Object.prototype.toString.call(A)==='[object Array]';
     };
 
-    var callOnHyperJSON = function (hj, cb) {
+    var isTruthy = function (x) {
+        return x;
+    };
+
+    var callOnHyperJSON = Hyperjson.callOn = function (hj, cb) {
         var children;
 
         if (hj && hj[2]) {
@@ -27,11 +31,7 @@ define([], function () {
         return cb(hj[0], hj[1], children);
     };
 
-    var isTruthy = function (x) {
-        return x;
-    };
-
-    var DOM2HyperJSON = function(el, predicate, filter){
+    var DOM2HyperJSON = Hyperjson.fromDOM = function(el, predicate, filter){
         if(!el.tagName && el.nodeType === Node.TEXT_NODE){
             return el.textContent;
         }
@@ -60,16 +60,7 @@ define([], function () {
 
         // get the element type, id, and classes of the element
         // and push them to the result array
-        var sel = el.tagName;
-
-        if(attributes.id){
-            // we don't have to do much to validate IDs because the browser
-            // will only permit one id to exist
-            // unless we come across a strange browser in the wild
-          sel = sel +'#'+ attributes.id;
-          delete attributes.id;
-        }
-        result.push(sel);
+        result.push(el.tagName);
 
         // second element of the array is the element attributes
         result.push(attributes);
@@ -91,8 +82,22 @@ define([], function () {
         }
     };
 
-    return {
-        fromDOM: DOM2HyperJSON,
-        callOn: callOnHyperJSON
+    var H = Hyperjson.toDOM = function(hj) {
+        if (typeof(hj) === 'string') { return document.createTextNode(hj); }
+        var e = document.createElement(hj[0]);
+        for (var x in hj[1]) { e.setAttribute(x, hj[1][x]); }
+        for (var i = 0; i < hj[2].length; i++) { e.appendChild(H(hj[2][i])); }
+        return e;
     };
-});
+
+    if (typeof(module) !== 'undefined' && module.exports) {
+        module.exports = Hyperjson;
+    } else if ((typeof(define) !== 'undefined' && define !== null) && (define.amd !== null)) {
+        define(function () {
+            return Hyperjson;
+        });
+    } else {
+        window.Hyperjson = Hyperjson;
+    }
+}());
+

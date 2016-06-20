@@ -55,7 +55,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
 
         RTFrontend_hyperjson: "$document.getAttachmentURL('hyperjson.js')",
-        RTFrontend_hyperscript: "$document.getAttachmentURL('hyperscript.js')",
 
         RTFrontend_diffDOM: "$document.getAttachmentURL('diffDOM.js')",
 
