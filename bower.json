@@ -1,0 +1,29 @@
+{
+  "name": "realtime-frontend",
+  "homepage": "https://github.com/xwiki-labs/realtime-frontend",
+  "authors": [
+    "xwiki-labs <research@xwiki.com>"
+  ],
+  "description": "Realtime Frontend extension for XWiki",
+  "main": "",
+  "license": "LGPL",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies" : {
+    "rangy": "rangy-release#~1.3.0",
+    "json.sortify": "~2.1.0",
+    "hyperjson": "~1.3.0",
+    "textpatcher": "~1.3.0",
+    "chainpad": "~0.2.2",
+    "chainpad-json-validator": "~0.1.1",
+    "chainpad-crypto-stub": "~0.1.0",
+    "chainpad-netflux": "~0.3.0",
+    "diff-dom": "#gh-pages"
+  }
+}

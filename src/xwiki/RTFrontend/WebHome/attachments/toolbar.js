@@ -147,7 +147,6 @@ define([
             } catch (e) { console.error(e); }
             var linkClass = "";
             if (config.marginAvatar == "1") { linkClass = "rt-user-link"; }
-            else console.log(config);
             list += '<span class="' + linkClass + '" data-id="' + user + '">' + display + '</span>' + comma + ' ';
             i++;
           }
@@ -171,7 +170,7 @@ define([
         }
         $('.rt-user-link').off('click');
         $('.rt-user-link').on('click' , function() {
-            if (typeof onUsernameClick !== "undefined") { onUsernameClick($(this.attr('data-id'))); }
+            if (typeof onUsernameClick !== "undefined") { onUsernameClick($(this).attr('data-id')); }
             else if ($('iframe').length) {
                 var basehref = $('iframe')[0].contentWindow.location.href.split('#')[0] || "";
                 $('iframe')[0].contentWindow.location.href = basehref + "#rt-user-" + $(this).attr('data-id');

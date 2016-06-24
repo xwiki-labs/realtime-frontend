@@ -43,29 +43,45 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
     var PATHS = {
-        RTFrontend_chainpad: "$document.getAttachmentURL('chainpad.js')",
-        RTFrontend_realtime_input: "$document.getAttachmentURL('realtime-input.js')",
+        RTFrontend_chainpad: "$document.getAttachmentURL('chainpad.dist.js')",
+        '/bower_components/chainpad/chainpad.dist.js':  "$document.getAttachmentURL('chainpad.dist.js')",
+        RTFrontend_realtime_input: "$document.getAttachmentURL('chainpad-netflux.js')",
+        '/bower_components/chainpad-netflux/chainpad-netflux.js': "$document.getAttachmentURL('chainpad-netflux.js')",
 
         RTFrontend_saver: "$document.getAttachmentURL('saver.js')",
         RTFrontend_interface: "$document.getAttachmentURL('interface.js')",
         RTFrontend_toolbar: "$document.getAttachmentURL('toolbar.js')",
         RTFrontend_userdata: "$document.getAttachmentURL('userdata.js')",
-
         RTFrontend_cursor: "$document.getAttachmentURL('cursor.js')",
-        RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
-
-        RTFrontend_hyperjson: "$document.getAttachmentURL('hyperjson.js')",
-
-        RTFrontend_diffDOM: "$document.getAttachmentURL('diffDOM.js')",
-
         RTFrontend_treesome: "$document.getAttachmentURL('treesome.js')",
         RTFrontend_messages: "$document.getAttachmentURL('messages.js')",
-        RTFrontend_promises: "$document.getAttachmentURL('es6-promise.min.js')",
-        'json.sortify': "$document.getAttachmentURL('JSON.sortify.js')",
-        RTFrontend_netflux: "$document.getAttachmentURL('netflux-client.js')",
-        RTFrontend_text_patcher: "$document.getAttachmentURL('TextPatcher.js')",
         RTFrontend_tests: "$document.getAttachmentURL('TypingTests.js')",
+
+        RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
+        '/bower_components/chainpad-json-validator/json-ot.js': "$document.getAttachmentURL('json-ot.js')",
+
+        RTFrontend_hyperjson: "$document.getAttachmentURL('hyperjson.js')",
+        '/bower_components/hyperjson/hyperjson.js': "$document.getAttachmentURL('hyperjson.js')",
+
+        RTFrontend_diffDOM: "$document.getAttachmentURL('diffDOM.js')",
+        '/bower_components/diff-dom/diffDOM.js': "$document.getAttachmentURL('diffDOM.js')",
+
+        RTFrontend_promises: "$document.getAttachmentURL('es6-promise.min.js')",
+        '/bower_components/es6-promise/es6-promise.min.js': "$document.getAttachmentURL('es6-promise.min.js')",
+
+        'json.sortify': "$document.getAttachmentURL('JSON.sortify.js')",
+        '/bower_components/json.sortify/dist/JSON.sortify': "$document.getAttachmentURL('JSON.sortify.js')",
+
+        RTFrontend_netflux: "$document.getAttachmentURL('netflux-client.js')",
+        '/bower_components/netflux-websocket/netflux-client.js': "$document.getAttachmentURL('netflux-client.js')",
+
+        RTFrontend_text_patcher: "$document.getAttachmentURL('TextPatcher.js')",
+        '/bower_components/textpatcher/TextPatcher.js': "$document.getAttachmentURL('TextPatcher.js')",
+
         RTFrontend_rangy: "$document.getAttachmentURL('rangy-core.min.js')",
+        '/bower_components/rangy/rangy-core.min.js': "$document.getAttachmentURL('rangy-core.min.js')",
+
+        RTFrontend_crypto: "$document.getAttachmentURL('stub.js')",
 
         RTFrontend_errorbox: "$xwiki.getURL('RTFrontend.ErrorBox','jsx')" + '?minify=false',
         RTFrontend_GetKey: "$xwiki.getURL('RTFrontend.GetKey','get')?outputSyntax=plain&"
@@ -131,7 +147,17 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
 
     for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
-    require.config({paths:PATHS});
+
+    require.config({
+        paths:PATHS
+    });
+    delete PATHS['json.sortify'];
+    require.config({
+        map: {
+            "*": PATHS
+        }
+    });
+
 
     var getDocLock = module.getDocLock = function () {
         var force = document.querySelectorAll('a[href*="force=1"][href*="/edit/"]');

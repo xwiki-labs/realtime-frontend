@@ -1,3 +1,4 @@
 mvnout
 *.xar
 .*.swp
+bower_components/*
