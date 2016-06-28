@@ -51,8 +51,11 @@ define([
             '}',
             '.rt-user-link {',
             '    cursor: pointer;',
+            '    color: #0088CC;',
+            '}',
+            '.rt-user-link:hover {',
             '    text-decoration: underline;',
-            '    color: #220FDD;',
+            '    color: #005580;',
             '}',
             '.rt-user-avatar {',
             '    vertical-align: top;',
@@ -141,7 +144,9 @@ define([
                     comma = "";
                 }
             } catch (e) { console.error(e); }
-            list += '<span class="rt-user-link" data-id="' + user + '">' + display + '</span>' + comma + ' ';
+            var linkClass = "";
+            if (config.marginAvatar == "1") { linkClass = "rt-user-link"; }
+            list += '<span class="' + linkClass + '" data-id="' + user + '">' + display + '</span>' + comma + ' ';
             i++;
           }
         }
@@ -149,7 +154,7 @@ define([
       return (i > 0) ? list.slice(0, -2) : list;
     };
 
-    var updateUserList = function (myUserName, listElement, userList, userData) {
+    var updateUserList = function (myUserName, listElement, userList, userData, onUsernameClick) {
         var meIdx = userList.indexOf(myUserName);
         if (meIdx === -1) {
             listElement.textContent = Messages.synchronizing;
@@ -164,8 +169,11 @@ define([
         }
         $('.rt-user-link').off('click');
         $('.rt-user-link').on('click' , function() {
-            var basehref = $('iframe')[0].contentWindow.location.href.split('#')[0] || "";
-            $('iframe')[0].contentWindow.location.href = basehref + "#rt-user-" + $(this).attr('data-id');
+            if (typeof onUsernameClick !== "undefined") { onUsernameClick($(this.attr('data-id'))); }
+            else if ($('iframe').length) {
+                var basehref = $('iframe')[0].contentWindow.location.href.split('#')[0] || "";
+                $('iframe')[0].contentWindow.location.href = basehref + "#rt-user-" + $(this).attr('data-id');
+            }
         });
     };
 
@@ -200,6 +208,7 @@ define([
         var lagElement = createLagElement(toolbar.find('.rt-toolbar-rightside'));
         var userData = config.userData;
         var changeNameID = config.changeNameID;
+        var onUsernameClick = config.onUsernameClick || undefined;
 
         // Check if the user is allowed to change his name
         if(changeNameID) {
@@ -216,7 +225,7 @@ define([
           if(newUserData) { // Someone has changed his name/color
             userData = newUserData;
           }
-          updateUserList(myUserName, userListElement, users, userData);
+          updateUserList(myUserName, userListElement, users, userData, onUsernameClick);
         });
 
         var ks = function () {
