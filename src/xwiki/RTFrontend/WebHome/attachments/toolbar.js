@@ -51,7 +51,6 @@ define([
             '}',
             '.rt-user-link {',
             '    cursor: pointer;',
-            '    /*text-decoration: underline;*/',
             '    color: #0088CC;',
             '}',
             '.rt-user-link:hover {',
@@ -147,7 +146,6 @@ define([
             } catch (e) { console.error(e); }
             var linkClass = "";
             if (config.marginAvatar == "1") { linkClass = "rt-user-link"; }
-            else console.log(config);
             list += '<span class="' + linkClass + '" data-id="' + user + '">' + display + '</span>' + comma + ' ';
             i++;
           }
