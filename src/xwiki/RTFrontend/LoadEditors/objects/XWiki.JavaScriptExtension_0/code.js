@@ -89,7 +89,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
     ## Current user avatar
     #set ($myAvatar = $xwiki.getUserName($xcontext.getUser(), '$avatar', false))
-    #if ("$!myAvatar" != "$avatar")
+    #if ("$!myAvatar" != "$avatar" && "$!myAvatar" != "")
         #set ($userRef = $xcontext.getUserReference())
         #set ($userDoc = $xwiki.getDocument($userRef))
         #set ($avatarUrl = $userDoc.getAttachmentURL($myAvatar))

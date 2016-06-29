@@ -51,7 +51,6 @@ define([
             '}',
             '.rt-user-link {',
             '    cursor: pointer;',
-            '    /*text-decoration: underline;*/',
             '    color: #0088CC;',
             '}',
             '.rt-user-link:hover {',
