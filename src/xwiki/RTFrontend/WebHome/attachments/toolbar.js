@@ -24,14 +24,14 @@ define([
 
     var createRealtimeToolbar = function ($container, toolbarStyle) {
         var id = uid();
-        $container.prepend(
+        var toolbar = $(
             '<div class="' + TOOLBAR_CLS + '" id="' + id + '">' +
                 '<div class="rt-toolbar-leftside"></div>' +
                 '<div class="rt-toolbar-rightside"></div>' +
             '</div>'
         );
-        var toolbar = $container.find('#'+id);
-        // Generic style : 
+        $container.first().prepend(toolbar);
+        // Generic style :
         toolbar.append([
             '<style>',
             '.rt-toolbar-leftside div {',
