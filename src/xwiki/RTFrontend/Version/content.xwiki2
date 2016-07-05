@@ -27,6 +27,6 @@
 #set ($mymap["content"] = $content)
 
 #set ($out = $jsontool.serialize($mymap))
-$response.getOutputStream().print($out)
+$response.getOutputStream().write($out.getBytes("UTF-8"))
 $xcontext.setFinished(true)
 {{/velocity}}
