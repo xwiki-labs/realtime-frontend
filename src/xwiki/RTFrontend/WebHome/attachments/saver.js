@@ -18,8 +18,6 @@ define([
 
     var now = function () { return (new Date()).getTime(); };
 
-
-
     var Saver = {};
 
     var mainConfig = Saver.mainConfig = {};
@@ -412,7 +410,7 @@ define([
                                 // walk the tree of hashes and if merge.previousVersionContent
                                 // exists, then this merge is quite possibly faulty
 
-                                if (mainConfig.realtime.wasEverState(merge.previousVersionContent)) {
+                                if (mainConfig.realtime.getDepthOfState(merge.previousVersionContent) !== -1) {
                                     debug("The server merged a version which already existed in the history. " +
                                         "Reversions shouldn't merge. Ignoring merge");
 
