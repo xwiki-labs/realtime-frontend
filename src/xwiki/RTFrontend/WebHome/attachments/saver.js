@@ -555,6 +555,7 @@ define([
         mainConfig.getTextValue = config.getTextValue || null;
         mainConfig.getSaveValue = config.getSaveValue || null;
         mainConfig.setTextValue = config.setTextValue || null;
+        mainConfig.formId = config.formId || "edit";
         mainConfig.userName = config.userName;
         mainConfig.userList = config.userList;
         var language = mainConfig.language;
@@ -670,7 +671,7 @@ define([
             $('[name="action_preview"]').remove();
 
             // wait to get saved event
-            document.observe('xwiki:document:saved', function (ev) {
+            var onSavedHandler = mainConfig.onSaved = function (ev) {
                 // this means your save has worked
 
                 // cache the last version
@@ -716,12 +717,14 @@ define([
                     }
                 });
                 return true;
-            });
+            };
+            document.observe('xwiki:document:saved', onSavedHandler);
 
-            document.observe("xwiki:document:saveFailed", function (ev) {
+            var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
                 ErrorBox.show('save');
                 warn("save failed!!!");
-            });
+            };
+            document.observe("xwiki:document:saveFailed", onSaveFailedHandler);
 
             // TimeOut
             var check = function () {
@@ -775,6 +778,33 @@ define([
             delete mainConfig.webChannel;
         }
         if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
+
+        // Remove the merge routine from the save buttons
+        document.stopObserving('xwiki:document:saved', mainConfig.onSaved);
+        document.stopObserving('xwiki:document:saveFailed', mainConfig.onSaveFailed);
+        // replace callbacks for the save and view button
+        $('[name="action_save"]')
+            .off('click')
+            .click(function (e) {
+                e.preventDefault();
+                // fire save event
+                document.fire('xwiki:actions:save', {
+                    form: $('#'+mainConfig.formId)[0],
+                    continue: 0
+                });
+            });
+
+        // replace callbacks for the save and continue button
+        $('[name="action_saveandcontinue"]')
+            .off('click')
+            .click(function (e) {
+                e.preventDefault();
+                // fire save event
+                document.fire('xwiki:actions:save', {
+                    form: $('#'+mainConfig.formId)[0],
+                    continue: 1
+                });
+            });
     }
 
     Saver.setLastSavedContent = function (content) {

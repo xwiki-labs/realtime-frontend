@@ -23,7 +23,7 @@
     "chainpad": "~0.2.2",
     "chainpad-json-validator": "~0.1.1",
     "chainpad-crypto-stub": "~0.1.0",
-    "chainpad-netflux": "~0.3.0",
+    "chainpad-netflux": "~0.4.0",
     "diff-dom": "#gh-pages"
   }
 }
