@@ -69,4 +69,13 @@ We were unable to save your document. Try again shortly.
 
 )))
 
+(% class="realtime-velocity" %)(((
+
+= Critical Save Error =
+
+The realtime saver/merger script has encountered an unexpected error and **the save was not performed**.
+If this message is displayed everytime you try to save the document, you probably should **disable the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
+
+)))
+
 )))

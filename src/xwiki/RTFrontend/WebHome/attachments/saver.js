@@ -134,8 +134,9 @@ define([
             },
             data: stats,
             error: function (err) {
+                ErrorBox.show('velocity');
                 warn(err);
-                cb(err,null);
+                //cb(err,null);
             },
         });
     };

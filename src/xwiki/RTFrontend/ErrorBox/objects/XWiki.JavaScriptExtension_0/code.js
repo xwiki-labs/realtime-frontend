@@ -6,7 +6,7 @@ define(function () {
     // END VELOCITY
 
     /** different types of popups, see RTWysiwyg.ErrorBox content */
-    var ELEMS = [ 'error', 'disconnected', 'debug', 'merge', 'parse', 'unavailable', 'save'];
+    var ELEMS = [ 'error', 'disconnected', 'debug', 'merge', 'parse', 'unavailable', 'save', 'velocity'];
 
     var ModalPopup = Class.create(XWiki.widgets.ModalPopup, {
         /** Default parameters can be added to the custom class. */
