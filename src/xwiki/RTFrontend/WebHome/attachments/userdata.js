@@ -69,7 +69,7 @@ define(['RTFrontend_realtime_input',
         };
         var onReady = config.onReady =  function(info) {
             var realtime = module.realtime = info.realtime;
-            module.leaveChannel = info.leave;
+            module.leave = info.leave;
             module.patchText = TextPatcher.create({
                 realtime : realtime,
                 logging : false
@@ -91,8 +91,9 @@ define(['RTFrontend_realtime_input',
             }
         };
 
+        var to;
         if (typeof cursor !== "undefined") {
-            var to = setInterval(function () {
+            to = setInterval(function () {
                 var newcursor = cursor();
                 if (oldcursor !== newcursor) {
                     userData[myId]['cursor_'+editor] = newcursor;
@@ -102,6 +103,11 @@ define(['RTFrontend_realtime_input',
                 }
             }, 3000);
         }
+
+        var leaveChannel = userData.leave = function() {
+            clearInterval(to);
+            module.leave();
+        };
 
         realtimeInput.start(config);
 
