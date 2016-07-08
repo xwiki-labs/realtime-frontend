@@ -46,6 +46,7 @@ define([
         mainConfig.isHTML         = config.isHTML;
         mainConfig.mergeContent   = config.mergeContent;
         mainConfig.editorName     = config.editorName;
+        mainConfig.safeCrash     = function (reason) { warn(reason); };
         lastSaved.version = config.version;
     };
 
@@ -162,6 +163,7 @@ define([
     var bumpVersion = function (cb, versionData) {
         var callback = function (e, out) {
             if (e) {
+                mainConfig.safeCrash('updateversion');
                 warn(e);
             } else if (out) {
                 debug("Triggering lastSaved refresh on remote clients");
@@ -225,6 +227,7 @@ define([
                 andThen();
             },
             error: function (jqxhr, err, cause) {
+                ErrorBox.show('save');
                 warn(err);
                 // Don't callback, this way in case of error we will keep trying.
                 //andThen();
@@ -388,6 +391,7 @@ define([
 
                                         },
                                         error: function (err) {
+                                            mainConfig.safeCrash('keepremote');
                                             warn("Encountered an error while fetching remote content");
                                             warn(err);
                                         }
@@ -425,10 +429,6 @@ define([
 
                                 // there were no errors or local changes push to the textarea
                                 mainConfig.setTextValue(mergedContent, false, function() {
-                                  // bump sharejs to force propogation. only if changed
-                                  //socket.realtime.bumpSharejs(); //TODO; config.onLocal?
-                                  // TODO show message informing the user
-                                  // which versions were merged...
                                   continuation(andThen);
                                 });
                             }
@@ -564,6 +564,8 @@ define([
         var netfluxNetwork = config.network;
         var channel = mainConfig.channel = config.channel;
         var demoMode = config.demoMode;
+
+        if (typeof config.safeCrash === "function") { mainConfig.safeCrash = config.safeCrash}
 
         lastSaved.time = now();
         var mergeDialogCurrentlyDisplayed = false;

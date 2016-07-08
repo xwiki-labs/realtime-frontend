@@ -78,4 +78,31 @@ If this message is displayed everytime you try to save the document, you probabl
 
 )))
 
+(% class="realtime-updateversion" %)(((
+
+= Update version error =
+
+We were unable to update the version of the document, which could create important merge error and loss of content.
+To avoid that, **Realtime has been disabled** and you are now editing this document //offline//.
+
+)))
+
+(% class="realtime-keepremote" %)(((
+
+= Merge error =
+
+We were unable to get the **remote** content into the realtime session.
+**Realtime has been disabled** so that you can fix the merge conflict manually //offline//.
+
+)))
+
+(% class="realtime-converthtml" %)(((
+
+= WYSIWYG error =
+
+We were unable to update CkEditor with the merged content.
+**Realtime has been disabled** so that you can fix the merge manually.
+
+)))
+
 )))
