@@ -66,6 +66,7 @@ We were unable to parse the server's response.
 = Save Error =
 
 We were unable to save your document. Try again shortly.
+If this message is displayed everytime you try to save the document, you should consider to **disable the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
 
 )))
 

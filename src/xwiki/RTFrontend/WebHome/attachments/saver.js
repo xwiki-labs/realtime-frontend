@@ -112,6 +112,7 @@ define([
         $.ajax({
             url: url,
             method: 'POST',
+            dataType: "json",
             success: function (data) {
                 try {
                     //var merge=JSON.parse(data);
