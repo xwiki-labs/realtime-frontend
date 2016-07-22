@@ -35,6 +35,8 @@ define([
         isavedSignature: ''
     };
 
+    var isSaving = false;
+
     var configure = Saver.configure = function (config) {
         mainConfig.ajaxMergeUrl   = config.ajaxMergeUrl + '?xpage=plain&outputSyntax=plain';
         mainConfig.ajaxVersionUrl = config.ajaxVersionUrl;
@@ -138,6 +140,7 @@ define([
             error: function (err) {
                 ErrorBox.show('velocity');
                 warn(err);
+                isSaving = false;
                 //cb(err,null);
             },
         });
@@ -228,6 +231,7 @@ define([
                 andThen();
             },
             error: function (jqxhr, err, cause) {
+                isSaving = false;
                 ErrorBox.show('save');
                 warn(err);
                 // Don't callback, this way in case of error we will keep trying.
@@ -302,6 +306,7 @@ define([
                             warn("The ajax merge API did not return an object. "+
                                 "Something went wrong");
                             warn(err);
+                            isSaving = false;
                             return;
                         } else if (err === merge.error) { // there was a merge error
                             // continue and handle elsewhere
@@ -310,12 +315,14 @@ define([
                             // it was some other kind of error... parsing?
                             // complain and return. this means the script failed
                             warn(err);
+                            isSaving = false;
                             return;
                         }
                     }
 
                     if (isaveInterrupt()) {
                         andThen("ISAVED interrupt", null);
+                        isSaving = false;
                         return;
                     }
 
@@ -328,6 +335,7 @@ define([
                         } else { */
                             // don't dead end, but indicate that you shouldn't save.
                             andThen("Merging didn't result in a change.", false);
+                            isSaving = false;
                             return;
     //                    }
                     }
@@ -389,10 +397,10 @@ define([
                                                 }, null);
                                                 continuation(andThen);
                                             });
-
                                         },
                                         error: function (err) {
                                             mainConfig.safeCrash('keepremote');
+                                            isSaving = false;
                                             warn("Encountered an error while fetching remote content");
                                             warn(err);
                                         }
@@ -411,6 +419,7 @@ define([
                                 andThen("The realtime content changed while we "+
                                     "were performing our asynchronous merge.",
                                     false);
+                                isSaving = false;
                                 return; // try again in one cycle
                             } else {
                                 // walk the tree of hashes and if merge.previousVersionContent
@@ -581,6 +590,7 @@ define([
                 var toSave = mainConfig.getTextValue();
                 if (e) {
                     warn(e);
+                    isSaving = false;
                     return;
                 } else if (shouldSave) {
 
@@ -601,6 +611,7 @@ define([
                             }
                             lastSaved.mergeMessage('saved',[out.version]);
                         }, null);
+                        isSaving = false;
                     });
                     return;
                 } else {
@@ -609,6 +620,7 @@ define([
                     lastSaved.content = toSave;
                     // didn't save, don't need a callback
                     bumpVersion();
+                    isSaving = false;
                     return;
                 }
             };
@@ -623,6 +635,9 @@ define([
                         "Avoiding unnecessary commits");
                     return;
                 }
+
+                isSaving = true;
+                if (isSaving) { return; }
 
                 if (mainConfig.mergeContent) {
                     mergeRoutine(andThen);
@@ -719,6 +734,7 @@ define([
                             lastSaved.mergeMessage("saved", [out.version]);
                         }, out);
                     }
+                    isSaving = false;
                 });
                 return true;
             };
@@ -727,6 +743,7 @@ define([
             var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
                 ErrorBox.show('save');
                 warn("save failed!!!");
+                isSaving = false;
             };
             document.observe("xwiki:document:saveFailed", onSaveFailedHandler);
 
