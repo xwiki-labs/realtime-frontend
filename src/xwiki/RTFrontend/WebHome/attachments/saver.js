@@ -32,7 +32,8 @@ define([
         wasEditedLocally: false,
         receivedISAVE: false,
         shouldRedirect: false,
-        isavedSignature: ''
+        isavedSignature: '',
+        mergeMessage: function () {}
     };
 
     var isSaving = false;
@@ -159,6 +160,7 @@ define([
             },
             data: stats,
             error: function (err) {
+                isSaving = false;
                 cb(err, null);
             }
         });
@@ -242,11 +244,9 @@ define([
 
     var ISAVED = 1;
     // sends an ISAVED message
-    var saveMessage=function (wc, channel, version, hash) {
+    var saveMessage = function (wc, channel, version, hash) {
         if (!wc) { return; }
-        debug("saved document"); // RT_event-on_save
         // show(saved(version))
-        lastSaved.mergeMessage('saved', [version]);
         var msg = [ISAVED, mainConfig.userName, version, hash, mainConfig.editorType, mainConfig.editorName];
         wc.bcast(JSON.stringify(msg)).then(function() {
           // Send the message back to Chainpad once it is sent to the recipients.
@@ -328,16 +328,11 @@ define([
 
                     mergedContent = merge.content;
                     if (mergedContent === lastSaved.content) {
-                        debug("Merging didn't result in a change.");
-    /* FIXME merge on load isn't working
-                        if (force) {
-                            debug("Force option was passed, merging anyway.");
-                        } else { */
-                            // don't dead end, but indicate that you shouldn't save.
-                            andThen("Merging didn't result in a change.", false);
-                            isSaving = false;
-                            return;
-    //                    }
+                        // don't dead end, but indicate that you shouldn't save.
+                        andThen("Merging didn't result in a change.", false);
+                        setLocalEditFlag(false);
+                        isSaving = false;
+                        return;
                     }
 
                     var continuation = function (callback) {
@@ -625,7 +620,8 @@ define([
                 }
             };
 
-            var saveRoutine = function (andThen, force) {
+            var resetIsSaving;
+            var saveRoutine = function (andThen, force, autosave) {
                 // if this is ever true in your save routine, complain and abort
                 lastSaved.receivedISAVE = false;
 
@@ -636,8 +632,22 @@ define([
                     return;
                 }
 
+                if (isSaving) {
+                    if (!autosave) { warn("You tried to save while the document is already being saved. "+
+                            "Aborting the new instruction."); }
+                    return;
+                }
                 isSaving = true;
-                if (isSaving) { return; }
+
+                // Set a timeout to enable the save after 10sec if there was an unexpected error
+                if (resetIsSaving) { clearTimeout(resetIsSaving); }
+                resetIsSaving = window.setTimeout(function() {
+                    if (isSaving) {
+                        ErrorBox.show('save');
+                        warn("TIMEOUT: Save lock removed after 5sec. The previous save has failed and it is now possible to try again.");
+                        isSaving = false;
+                    }
+                }, 5000);
 
                 if (mainConfig.mergeContent) {
                     mergeRoutine(andThen);
@@ -703,10 +713,12 @@ define([
                 ajaxVersion(function (e, out) {
                     if (e) {
                         // there was an error (probably ajax)
+                        isSaving = false;
                         warn(e);
                         ErrorBox.show('save');
                     } else if (out.isNew) {
                         // it didn't actually save?
+                        isSaving = false;
                         ErrorBox.show('save');
                     } else {
                         lastSaved.onReceiveOwnIsave = function () {
@@ -718,6 +730,7 @@ define([
                                 debug("redirecting!");
                                 redirectToView();
                             } else {
+                                isSaving = false;
                                 debug('createSaver.saveandcontinue.receivedOwnIsaved');
                             }
                             // clean up after yourself..
@@ -734,7 +747,6 @@ define([
                             lastSaved.mergeMessage("saved", [out.version]);
                         }, out);
                     }
-                    isSaving = false;
                 });
                 return true;
             };

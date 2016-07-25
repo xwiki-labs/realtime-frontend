@@ -66,7 +66,7 @@ We were unable to parse the server's response.
 = Save Error =
 
 We were unable to save your document. Try again shortly.
-If this message is displayed everytime you try to save the document, you should consider to **disable the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
+If this message is displayed everytime you try to save the document, you should consider **disabling the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
 
 )))
 
@@ -75,7 +75,7 @@ If this message is displayed everytime you try to save the document, you should 
 = Critical Save Error =
 
 The realtime saver/merger script has encountered an unexpected error and **the save was not performed**.
-If this message is displayed everytime you try to save the document, you probably should **disable the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
+If this message is displayed everytime you try to save the document, you should consider **disabling the realtime engine** (uncheck the "Allow Realtime Collaboration" checkbox) and **save** again.
 
 )))
 
