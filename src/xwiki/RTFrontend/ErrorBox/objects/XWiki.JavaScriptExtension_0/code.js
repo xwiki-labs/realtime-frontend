@@ -8,6 +8,8 @@ define(function () {
     /** different types of popups, see RTWysiwyg.ErrorBox content */
     var ELEMS = [ 'error', 'disconnected', 'debug', 'merge', 'parse', 'unavailable', 'save', 'velocity', 'updateversion', 'keepremote', 'converthtml'];
 
+    var modal;
+
     var ModalPopup = Class.create(XWiki.widgets.ModalPopup, {
         /** Default parameters can be added to the custom class. */
         defaultInteractionParameters : {
@@ -31,6 +33,7 @@ define(function () {
                 }
             );
             this.showDialog();
+            modal = this;
         },
 
         /** Get the content of the modal dialog using ajax */
@@ -63,6 +66,10 @@ define(function () {
             }
             elem.textContent = "error of unknown type ["+type+"]";
         }});
+    };
+
+    var hide = module.exports.hide = function () {
+        modal.closeDialog();
     };
 
     return module.exports;

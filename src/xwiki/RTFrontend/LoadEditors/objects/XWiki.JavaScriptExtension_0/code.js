@@ -75,6 +75,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_netflux: "$document.getAttachmentURL('netflux-client.js')",
         '/bower_components/netflux-websocket/netflux-client.js': "$document.getAttachmentURL('netflux-client.js')",
 
+        '/bower_components/reconnectingWebsocket/reconnecting-websocket.js': "$document.getAttachmentURL('reconnecting-websocket.js')",
+
         RTFrontend_text_patcher: "$document.getAttachmentURL('TextPatcher.js')",
         '/bower_components/textpatcher/TextPatcher.js': "$document.getAttachmentURL('TextPatcher.js')",
 

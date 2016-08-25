@@ -215,7 +215,6 @@ define([
             // Create the button and update the element containing the user list
             userListElement = createChangeName($container, userListElement, changeNameID);
         }
-
         var connected = false;
 
         userList.change.push(function(newUserData) {
@@ -245,11 +244,12 @@ define([
             toolbar: toolbar,
             failed: function () {
                 connected = false;
-                userListElement.textContent = '';
+                userListElement.textContent = 'Disconnected';
                 lagElement.textContent = '';
             },
-            reconnecting: function () {
+            reconnecting: function (userId) {
                 connected = false;
+                myUserName = userId;
                 userListElement.textContent = Messages.reconnecting;
                 lagElement.textContent = '';
             },
