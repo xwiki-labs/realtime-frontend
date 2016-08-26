@@ -569,6 +569,7 @@ define([
         var netfluxNetwork = config.network;
         var channel = mainConfig.channel = config.channel;
         var demoMode = config.demoMode;
+				var firstConnection = true;
 
         if (typeof config.safeCrash === "function") { mainConfig.safeCrash = config.safeCrash}
 
@@ -689,7 +690,7 @@ define([
             // replace callbacks for the save and continue button
             var $sac = $('[name="action_saveandcontinue"]');
             $sac[0].stopObserving();
-            $sac.click(function (e) {
+            $sac.off('click').click(function (e) {
                 e.preventDefault();
                 // should redirect?
                 saveButtonAction(false);
@@ -702,7 +703,6 @@ define([
             // wait to get saved event
             var onSavedHandler = mainConfig.onSaved = function (ev) {
                 // this means your save has worked
-
                 // cache the last version
                 var lastVersion = lastSaved.version;
                 var toSave = mainConfig.getTextValue();
@@ -751,6 +751,7 @@ define([
                 return true;
             };
             document.observe('xwiki:document:saved', onSavedHandler);
+						console.log("saved handler registered");
 
             var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
                 ErrorBox.show('save');
@@ -790,10 +791,24 @@ define([
 
             check();
 
-            network.on('disconnect', function (evt) {
-                clearTimeout(mainConfig.autosaveTimeout);
-            });
-        }
+						/* Stop the autosaver when the websocket connection is closed. If reconnecting-websocket
+						   manages to reconnect, update only the version. If the application using the autosaver 
+						   handles reconnections, it has to recreate the saver when the websockets are up again.
+
+							 NOTE: A reconnection script directly in saver.js may break the entire saving system of the
+						   document. If the saver manages reconnections but not the main application, it would result
+						   in merges of an offline document (with potential merge errors due to version mismatch)
+						*/
+            network.on('disconnect', Saver.stop);
+
+						network.on('reconnect', function (uid) {
+								ajaxVersion(function (e, out) {
+										lastSaved.version = out.version;
+										lastSaved.content = out.content;
+										console.log(lastSaved);
+								});
+						});
+        };
 
         netfluxNetwork.join(channel).then(function(chan) {
             chan.on('message', onMessage);
@@ -838,6 +853,7 @@ define([
                     continue: 1
                 });
             });
+				console.log("stopped");
     }
 
     Saver.setLastSavedContent = function (content) {
