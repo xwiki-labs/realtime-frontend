@@ -569,7 +569,7 @@ define([
         var netfluxNetwork = config.network;
         var channel = mainConfig.channel = config.channel;
         var demoMode = config.demoMode;
-				var firstConnection = true;
+        var firstConnection = true;
 
         if (typeof config.safeCrash === "function") { mainConfig.safeCrash = config.safeCrash}
 
@@ -751,7 +751,6 @@ define([
                 return true;
             };
             document.observe('xwiki:document:saved', onSavedHandler);
-						console.log("saved handler registered");
 
             var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
                 ErrorBox.show('save');
@@ -791,23 +790,22 @@ define([
 
             check();
 
-						/* Stop the autosaver when the websocket connection is closed. If reconnecting-websocket
-						   manages to reconnect, update only the version. If the application using the autosaver 
-						   handles reconnections, it has to recreate the saver when the websockets are up again.
+            /* Stop the autosaver when the websocket connection is closed. If reconnecting-websocket
+               manages to reconnect, update only the version. If the application using the autosaver 
+               handles reconnections, it has to recreate the saver when the websockets are up again.
 
-							 NOTE: A reconnection script directly in saver.js may break the entire saving system of the
-						   document. If the saver manages reconnections but not the main application, it would result
-						   in merges of an offline document (with potential merge errors due to version mismatch)
-						*/
+               NOTE: A reconnection script directly in saver.js may break the entire saving system of the
+                     document. If the saver manages reconnections but not the main application, it would result
+                     in merges of an offline document (with potential merge errors due to version mismatch)
+            */
             network.on('disconnect', Saver.stop);
 
-						network.on('reconnect', function (uid) {
-								ajaxVersion(function (e, out) {
-										lastSaved.version = out.version;
-										lastSaved.content = out.content;
-										console.log(lastSaved);
-								});
-						});
+            network.on('reconnect', function (uid) {
+                ajaxVersion(function (e, out) {
+                    lastSaved.version = out.version;
+                    lastSaved.content = out.content;
+                });
+            });
         };
 
         netfluxNetwork.join(channel).then(function(chan) {
@@ -853,8 +851,7 @@ define([
                     continue: 1
                 });
             });
-				console.log("stopped");
-    }
+    };
 
     Saver.setLastSavedContent = function (content) {
         lastSaved.content = content;
