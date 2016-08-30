@@ -706,7 +706,6 @@ define([
                 // cache the last version
                 var lastVersion = lastSaved.version;
                 var toSave = mainConfig.getTextValue();
-
                 // update your content
                 updateLastSaved(toSave);
 
@@ -750,6 +749,7 @@ define([
                 });
                 return true;
             };
+            document.stopObserving('xwiki:document:saved');
             document.observe('xwiki:document:saved', onSavedHandler);
 
             var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
@@ -757,6 +757,7 @@ define([
                 warn("save failed!!!");
                 isSaving = false;
             };
+            document.stopObserving('xwiki:document:saveFailed');
             document.observe("xwiki:document:saveFailed", onSaveFailedHandler);
 
             // TimeOut
@@ -816,8 +817,8 @@ define([
         });
     }; // END createSaver
 
+    // Stop the autosaver/merge when the user disallows realtime or when the websocket is disconnected
     Saver.stop = function() {
-        mainConfig.mergeContent = false;
         if (mainConfig.realtime) { mainConfig.realtime.abort(); }
         if (mainConfig.webChannel) {
             mainConfig.webChannel.leave();
@@ -826,8 +827,8 @@ define([
         if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
 
         // Remove the merge routine from the save buttons
-        document.stopObserving('xwiki:document:saved', mainConfig.onSaved);
-        document.stopObserving('xwiki:document:saveFailed', mainConfig.onSaveFailed);
+        document.stopObserving('xwiki:document:saved');
+        document.stopObserving('xwiki:document:saveFailed');
         // replace callbacks for the save and view button
         $('[name="action_save"]')
             .off('click')
