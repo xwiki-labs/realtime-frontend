@@ -1,8 +1,12 @@
 define([
-    'RTFrontend_netflux',
+    'RTFrontend_realtime_input',
+    'RTFrontend_text_patcher',
     'RTFrontend_errorbox',
     'jquery',
-], function (Netflux, ErrorBox, $) {
+    'RTFrontend_crypto',
+    'RTFrontend_json_ot',
+    'json.sortify'
+], function (realtimeInput, TextPatcher, ErrorBox, $, Crypto, JsonOT, stringify) {
     var warn = function (x) {};
     var debug = function (x) {};
     // there was way too much noise, if you want to know everything use verbose
@@ -22,7 +26,11 @@ define([
 
     var mainConfig = Saver.mainConfig = {};
 
-    var lastSaved = Saver.lastSaved = {
+    // Contains the realtime data
+    var rtData = {};
+    window.rtData = function() {return rtData;};//TODO
+
+    var lastSaved = window.lastSaved = Saver.lastSaved = {
         content: '',
         time: 0,
         // http://jira.xwiki.org/browse/RTWIKI-37
@@ -176,7 +184,7 @@ define([
                 lastSaved.version = out.version;
                 lastSaved.content = out.content;
                 var contentHash = (mainConfig.chainpad && mainConfig.chainpad.hex_sha256) ? mainConfig.chainpad.hex_sha256(out.content) : "";
-                saveMessage(mainConfig.webChannel, mainConfig.channel, lastSaved.version, contentHash);
+                saveMessage(lastSaved.version, contentHash);
                 cb && cb(out);
             } else {
                 throw new Error();
@@ -244,17 +252,15 @@ define([
 
     var ISAVED = 1;
     // sends an ISAVED message
-    var saveMessage = function (wc, channel, version, hash) {
-        if (!wc) { return; }
-        // show(saved(version))
-        var msg = [ISAVED, mainConfig.userName, version, hash, mainConfig.editorType, mainConfig.editorName];
-        wc.bcast(JSON.stringify(msg)).then(function() {
-          // Send the message back to Chainpad once it is sent to the recipients.
-          onMessage(JSON.stringify(msg), wc.myID);
-        }, function(err) {
-          // The message has not been sent, display the error.
-          console.error(err);
-        });
+    var saveMessage = function (version, hash) {
+        var newState = {
+            version: version,
+            by: mainConfig.userName,
+            hash: hash,
+            editorName: mainConfig.editorName
+        };
+        rtData[mainConfig.editorType] = newState;
+        mainConfig.onLocal();
     };
 
     var presentMergeDialog = function(question, labelDefault, choiceDefault, labelAlternative, choiceAlternative){
@@ -446,7 +452,7 @@ define([
                 });
     };
 
-    var onMessage = function (data, sender) {
+    var onMessage = function (data) {
         // set a flag so any concurrent processes know to abort
         lastSaved.receivedISAVE = true;
 
@@ -461,80 +467,78 @@ define([
             if not, we should treat it as foreign.
         */
 
-        // msg : [ISAVED, version, hash, editorType]
-        var msg;
-        try { msg = JSON.parse(data); } catch (e) { warn(e.stack);return; }
-        var msgType = msg[0];
-        var msgSender = msg[1];
-        var msgVersion = msg[2];
-        var msgHash = msg[3];
-        var msgEditor = msg[4];
-        var msgEditorName = msg[5];
+        var newSave = function (type, msg) {
+            var msgSender = msg.by;
+            var msgVersion = msg.version;
+            var msgHash = msg.hash;
+            var msgEditor = type;
+            var msgEditorName = msg.editorName;
 
-        if (msgType !== ISAVED) { return; }
-
-        var displaySaverName = function (isMerged) {
-            // a merge dialog might be open, if so, remove it and say as much
-            destroyDialog(function (dialogDestroyed) {
-                if (dialogDestroyed) {
-                    // tell the user about the merge resolution
-                    lastSaved.mergeMessage('conflictResolved', [msgVersion]);
-                } else {
-                    // otherwise say there was a remote save
-                    // http://jira.xwiki.org/browse/RTWIKI-34
-                    if(mainConfig.userList) {
-                        var senderData = mainConfig.userList[sender];
-                        var senderName = senderData ? senderData.name : msgSender;
-                        sender = (senderName) ? senderName.replace(/^.*-([^-]*)%2d[0-9]*$/, function(all, one) {
-                          return decodeURIComponent(one);
-                        }) : sender;
-                    }
-                    if (isMerged) {
-                        lastSaved.mergeMessage(
-                        'savedRemote',
-                        [msgVersion, sender]);
+            var displaySaverName = function (isMerged) {
+                // a merge dialog might be open, if so, remove it and say as much
+                destroyDialog(function (dialogDestroyed) {
+                    if (dialogDestroyed) {
+                        // tell the user about the merge resolution
+                        lastSaved.mergeMessage('conflictResolved', [msgVersion]);
                     } else {
-                        lastSaved.mergeMessage(
-                        'savedRemoteNoMerge',
-                        [msgVersion, sender, msgEditorName]);
+                        // otherwise say there was a remote save
+                        // http://jira.xwiki.org/browse/RTWIKI-34
+                        if(mainConfig.userList) {
+                            var senderName =  msgSender;
+                            var sender = msgSender.replace(/^.*-([^-]*)%2d[0-9]*$/, function(all, one) {
+                              return decodeURIComponent(one);
+                            });
+                        }
+                        if (isMerged) {
+                            lastSaved.mergeMessage(
+                            'savedRemote',
+                            [msgVersion, sender]);
+                        } else {
+                            lastSaved.mergeMessage(
+                            'savedRemoteNoMerge',
+                            [msgVersion, sender, msgEditorName]);
+                        }
                     }
+                });
+            };
+
+            if (msgEditor === mainConfig.editorType) {
+                if (lastSaved.version !== msgVersion) {
+                    displaySaverName(true);
+
+                    debug("A remote client saved and "+
+                        "incremented the latest common ancestor");
+
+                    // update lastSaved attributes
+                    lastSaved.wasEditedLocally = false;
+
+                    // update the local latest Common Ancestor version string
+                    lastSaved.version = msgVersion;
+
+                    // remember the state of the textArea when last saved
+                    // so that we can avoid additional minor versions
+                    // there's a *tiny* race condition here
+                    // but it's probably not an issue
+                    lastSaved.content = mainConfig.getTextValue();
+                } else {
+                    lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
                 }
-            });
+                lastSaved.time = now();
+            }
+            else {
+                displaySaverName(false);
+            }
         };
 
-        if (msgEditor === mainConfig.editorType) {
-            if (lastSaved.version !== msgVersion) {
-                displaySaverName(true);
-
-                debug("A remote client saved and "+
-                    "incremented the latest common ancestor");
-
-                // update lastSaved attributes
-                lastSaved.wasEditedLocally = false;
-
-                // update the local latest Common Ancestor version string
-                lastSaved.version = msgVersion;
-
-                // remember the state of the textArea when last saved
-                // so that we can avoid additional minor versions
-                // there's a *tiny* race condition here
-                // but it's probably not an issue
-                lastSaved.content = mainConfig.getTextValue();
-            } else {
-                lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
-            }
-            lastSaved.time = now();
+        // If the channel data is empty, do nothing (initial call in onReady)
+        if (Object.keys(data).length === 0) { return; }
+        for (var editor in data) {
+            if (typeof data[editor] !== "object" || Object.keys(data[editor]).length !== 4) { continue; } // corrupted data
+            if (rtData[editor] && stringify(rtData[editor]) === stringify(data[editor])) { continue; } // no change
+            newSave(editor, data[editor]);
         }
-        else {
-            displaySaverName(false);
-            /*lastSaved.receivedISAVE = false;
-            mergeRoutine(function(e) {
-                setLocalEditFlag(false);
-                lastSaved.version = msgVersion;
-                lastSaved.content = getTextValue();
-                if(e) { warn(e); }
-            });*/
-        }
+        rtData = data;
+
         return false;
     }; // end onMessage
     /*
@@ -562,12 +566,12 @@ define([
         mainConfig.getSaveValue = config.getSaveValue || null;
         mainConfig.setTextValue = config.setTextValue || null;
         mainConfig.formId = config.formId || "edit";
-        mainConfig.userName = config.userName;
+        var userName = mainConfig.userName = config.userName;
         mainConfig.userList = config.userList;
         var language = mainConfig.language;
         var realtime = mainConfig.realtime = config.realtime;
         var netfluxNetwork = config.network;
-        var channel = mainConfig.channel = config.channel;
+        var channel = config.channel;
         var demoMode = config.demoMode;
         var firstConnection = true;
 
@@ -799,22 +803,53 @@ define([
                      document. If the saver manages reconnections but not the main application, it would result
                      in merges of an offline document (with potential merge errors due to version mismatch)
             */
-            network.on('disconnect', Saver.stop);
-
-            network.on('reconnect', function (uid) {
-                ajaxVersion(function (e, out) {
-                    lastSaved.version = out.version;
-                    lastSaved.content = out.content;
-                });
-            });
         };
 
-        netfluxNetwork.join(channel).then(function(chan) {
-            chan.on('message', onMessage);
-            onOpen(chan);
-        }, function(err) {
-            warn(err);
-        });
+        var rtConfig = {
+            initialState : '{}',
+            network : netfluxNetwork,
+            userName : userName || '',
+            channel : channel,
+            crypto : Crypto || null,
+            transformFunction : JsonOT.validate,
+        };
+        var module = window.SAVER_MODULE = {};
+        var initializing = true;
+        var onRemote = rtConfig.onRemote = function (info) {
+            if (initializing) { return; }
+
+            try {
+                var data = JSON.parse(module.realtime.getUserDoc());
+                onMessage(data);
+            } catch (e) {
+                warn("Unable to parse realtime data from the saver", e);
+            }
+        };
+        var onReady = rtConfig.onReady = function (info) {
+            var realtime = module.realtime = info.realtime;
+            module.leave = info.leave;
+            module.patchText = TextPatcher.create({
+                realtime: realtime,
+                logging: 'false'
+            });
+            var data = JSON.parse(module.realtime.getUserDoc());
+            onMessage(data);
+            initializing = false;
+            onOpen();
+        };
+        var onLocal = rtConfig.onLocal = mainConfig.onLocal = function (info) {
+            if (initializing) { return; }
+            var sjson = stringify(rtData);
+            module.patchText(sjson);
+            lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+            if (module.realtime.getUserDoc() !== sjson) {
+                warn("Saver: userDoc !== sjson");
+            }
+        };
+        var onAbort = rtConfig.onAbort = function () {
+            Saver.stop();
+        }
+        realtimeInput.start(rtConfig);
     }; // END createSaver
 
     // Stop the autosaver/merge when the user disallows realtime or when the websocket is disconnected
@@ -825,7 +860,7 @@ define([
             delete mainConfig.webChannel;
         }
         if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
-
+        rtData = {};
         // Remove the merge routine from the save buttons
         document.stopObserving('xwiki:document:saved');
         document.stopObserving('xwiki:document:saveFailed');
