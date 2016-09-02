@@ -28,7 +28,6 @@ define([
 
     // Contains the realtime data
     var rtData = {};
-    window.rtData = function() {return rtData;};//TODO
 
     var lastSaved = window.lastSaved = Saver.lastSaved = {
         content: '',
@@ -261,6 +260,7 @@ define([
         };
         rtData[mainConfig.editorType] = newState;
         mainConfig.onLocal();
+        lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
     };
 
     var presentMergeDialog = function(question, labelDefault, choiceDefault, labelAlternative, choiceAlternative){
@@ -480,7 +480,7 @@ define([
                     if (dialogDestroyed) {
                         // tell the user about the merge resolution
                         lastSaved.mergeMessage('conflictResolved', [msgVersion]);
-                    } else {
+                    } else if (!mainConfig.initializing) {
                         // otherwise say there was a remote save
                         // http://jira.xwiki.org/browse/RTWIKI-34
                         if(mainConfig.userList) {
@@ -506,8 +506,10 @@ define([
                 if (lastSaved.version !== msgVersion) {
                     displaySaverName(true);
 
-                    debug("A remote client saved and "+
-                        "incremented the latest common ancestor");
+                    if (!mainConfig.initializing) {
+                        debug("A remote client saved and "+
+                            "incremented the latest common ancestor");
+                    }
 
                     // update lastSaved attributes
                     lastSaved.wasEditedLocally = false;
@@ -582,7 +584,6 @@ define([
 
         var onOpen = function(chan) {
             var network = netfluxNetwork;
-            mainConfig.webChannel = chan;
             // originally implemented as part of 'saveRoutine', abstracted logic
             // such that the merge/save algorithm can terminate with different
             // callbacks for different use cases
@@ -814,9 +815,9 @@ define([
             transformFunction : JsonOT.validate,
         };
         var module = window.SAVER_MODULE = {};
-        var initializing = true;
+        mainConfig.initializing = true;
         var onRemote = rtConfig.onRemote = function (info) {
-            if (initializing) { return; }
+            if (mainConfig.initializing) { return; }
 
             try {
                 var data = JSON.parse(module.realtime.getUserDoc());
@@ -827,21 +828,24 @@ define([
         };
         var onReady = rtConfig.onReady = function (info) {
             var realtime = module.realtime = info.realtime;
-            module.leave = info.leave;
+            module.leave = mainConfig.leaveChannel = info.leave;
             module.patchText = TextPatcher.create({
                 realtime: realtime,
                 logging: 'false'
             });
-            var data = JSON.parse(module.realtime.getUserDoc());
-            onMessage(data);
-            initializing = false;
+            try {
+                var data = JSON.parse(module.realtime.getUserDoc());
+                onMessage(data);
+            } catch (e) {
+                warn("Unable to parse realtime data from the saver", e);
+            }
+            mainConfig.initializing = false;
             onOpen();
         };
         var onLocal = rtConfig.onLocal = mainConfig.onLocal = function (info) {
-            if (initializing) { return; }
+            if (mainConfig.initializing) { return; }
             var sjson = stringify(rtData);
             module.patchText(sjson);
-            lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
             if (module.realtime.getUserDoc() !== sjson) {
                 warn("Saver: userDoc !== sjson");
             }
@@ -855,9 +859,9 @@ define([
     // Stop the autosaver/merge when the user disallows realtime or when the websocket is disconnected
     Saver.stop = function() {
         if (mainConfig.realtime) { mainConfig.realtime.abort(); }
-        if (mainConfig.webChannel) {
-            mainConfig.webChannel.leave();
-            delete mainConfig.webChannel;
+        if (mainConfig.leaveChannel) {
+            mainConfig.leaveChannel();
+            delete mainConfig.leaveChannel;
         }
         if (mainConfig.autosaveTimeout) { clearTimeout(mainConfig.autosaveTimeout); }
         rtData = {};
