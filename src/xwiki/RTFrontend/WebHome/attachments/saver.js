@@ -868,17 +868,9 @@ define([
         // Remove the merge routine from the save buttons
         document.stopObserving('xwiki:document:saved');
         document.stopObserving('xwiki:document:saveFailed');
-        // replace callbacks for the save and view button
-        $('[name="action_save"]')
-            .off('click')
-            .click(function (e) {
-                e.preventDefault();
-                // fire save event
-                document.fire('xwiki:actions:save', {
-                    form: $('#'+mainConfig.formId)[0],
-                    continue: 0
-                });
-            });
+        // remove callbacks for the save and view button
+        // the button will now submit the "Save and view" form
+        $('[name="action_save"]').off('click')
 
         // replace callbacks for the save and continue button
         $('[name="action_saveandcontinue"]')
