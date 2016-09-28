@@ -100,15 +100,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     #end
     var userAvatarUrl = '$avatarUrl';
 
-    ## Configurable values
-    #set ($webhomeRef = $services.model.resolveDocument("RTFrontend.WebHome"))
-    #set ($configObj = $!xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass'))
-
-    #set ($toolbarValue = $configObj.getProperty('toolbarUserlist').value)
-    var configToolbarUserlist = module.toolbarUserlist = "$!toolbarValue";
-    #set ($marginValue = $configObj.getProperty('marginAvatar').value)
-    var configMarginAvatar = module.marginAvatar = "$!marginValue";
-
     // END_VELOCITY
 
     if (!WEBSOCKET_URL) {

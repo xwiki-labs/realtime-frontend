@@ -1,0 +1,14 @@
+{{velocity}}
+{{html clean=false}}
+#set ($data = {"version" : "$!tdoc.version", "locale" : "$!tdoc.locale"})
+#set ($webhomeRef = $services.model.resolveDocument("RTFrontend.WebHome"))
+#set ($configObj = $xwiki.getDocument($webhomeRef).getObject('RTFrontend.ConfigurationClass'))
+#if ("$!configObj.getProperty('useGlobalConfig').value" != "0")
+    #set ($mainWebhomeRef = $services.model.createDocumentReference($xcontext.getMainWikiName(), "RTFrontend", "WebHome"))
+    #set ($configObj = $!xwiki.getDocument($mainWebhomeRef).getObject('RTFrontend.ConfigurationClass'))
+#end
+#set ($dataConfig = {"toolbarUserlist" : "$!{configObj.getProperty('toolbarUserlist').value}", "marginAvatar" : "$!{configObj.getProperty('marginAvatar').value}"})
+<div style="display:none" id="realtime-frontend-getversion">$jsontool.serialize($data)</div>
+<div style="display:none" id="realtime-frontend-getconfig">$jsontool.serialize($dataConfig)</div>
+{{/html}}
+{{/velocity}}

@@ -1,0 +1,28 @@
+{{html clean='false'}}
+<script>
+require(['jquery'], function (jQuery) {
+    var isMainWiki = $xcontext.isMainWiki();
+    var form = document.getElementById('realtime editors_RTFrontend.WebHome');
+    if (isMainWiki) {
+        jQuery(form).find('dt:first').hide();
+        return;
+    }
+    var useGlobalCheckbox = document.getElementById('RTFrontend.WebHome_RTFrontend.ConfigurationClass_1_useGlobalConfig');
+    var useGlobal = jQuery(useGlobalCheckbox).is(':checked');
+    var onChange = function (value) {
+        if (value) {
+            jQuery(form).find('input:visible, textarea:visible, select:visible').attr('disabled', 'disabled');
+            jQuery(useGlobalCheckbox).removeAttr('disabled');
+        }
+        else {
+            jQuery(form).find('input:visible, textarea:visible, select:visible').removeAttr('disabled');
+        }
+    };
+    onChange(useGlobal);
+    jQuery(useGlobalCheckbox).change(function() {
+        onChange(jQuery(this).is(':checked'));
+    });
+});
+</script>
+{{/html}}
+

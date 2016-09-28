@@ -7,6 +7,15 @@ XClass(function (xcl, XWiki) {
   xcl.setDefaultWeb("");
   xcl.setNameField("");
   xcl.setValidationScript("");
+  xcl.addProp("useGlobalConfig", props.XBoolean.create({
+    "customDisplay": "",
+    "defaultValue": "",
+    "displayFormType": "checkbox",
+    "displayType": "",
+    "prettyName": "Use the main wiki configuration",
+    "validationMessage": "",
+    "validationRegExp": ""
+  }));
   xcl.addProp("toolbarUserlist", props.StaticList.create({
     "customDisplay": "",
     "picker": "0",

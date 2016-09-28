@@ -1,4 +1,5 @@
 XWikiObj(function (obj) {
-    obj.setMarginAvatar("0");
-    obj.setToolbarUserlist("name");
+    obj.setUseGlobalConfig("1");
+    obj.setMarginAvatar("1");
+    obj.setToolbarUserlist("both");
 });
