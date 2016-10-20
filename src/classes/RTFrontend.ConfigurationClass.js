@@ -35,4 +35,13 @@ XClass(function (xcl, XWiki) {
     "validationMessage": "",
     "validationRegExp": ""
   }));
+  xcl.addProp("enableMerge", props.XBoolean.create({
+    "customDisplay": "",
+    "defaultValue": "",
+    "displayFormType": "checkbox",
+    "displayType": "",
+    "prettyName": "Try to merge the content when saving a document (disable only if it causes issues)",
+    "validationMessage": "",
+    "validationRegExp": ""
+  }));
 });

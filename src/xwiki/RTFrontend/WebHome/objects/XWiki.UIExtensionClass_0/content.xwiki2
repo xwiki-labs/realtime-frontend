@@ -7,7 +7,7 @@
     #set ($mainWebhomeRef = $services.model.createDocumentReference($xcontext.getMainWikiName(), "RTFrontend", "WebHome"))
     #set ($configObj = $!xwiki.getDocument($mainWebhomeRef).getObject('RTFrontend.ConfigurationClass'))
 #end
-#set ($dataConfig = {"toolbarUserlist" : "$!{configObj.getProperty('toolbarUserlist').value}", "marginAvatar" : "$!{configObj.getProperty('marginAvatar').value}"})
+#set ($dataConfig = {"toolbarUserlist" : "$!{configObj.getProperty('toolbarUserlist').value}", "marginAvatar" : "$!{configObj.getProperty('marginAvatar').value}", "enableMerge" : "$!{configObj.getProperty('enableMerge').value}"})
 <div style="display:none" id="realtime-frontend-getversion">$jsontool.serialize($data)</div>
 <div style="display:none" id="realtime-frontend-getconfig">$jsontool.serialize($dataConfig)</div>
 {{/html}}

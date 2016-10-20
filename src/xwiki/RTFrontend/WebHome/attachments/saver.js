@@ -137,14 +137,30 @@ define([
                         cb(null,merge);
                     }
                 } catch (err) {
-                    ErrorBox.show('parse');
+                    var debugLog = {
+                        state: 'ajaxMerge/parseError',
+                        lastSavedVersion: lastSaved.version,
+                        lastSavedContent: lastSaved.content,
+                        cUser: mainConfig.userName,
+                        mergeData: data,
+                        error: err
+                    }
+                    ErrorBox.show('parse', JSON.stringify(debugLog));
                     warn(err);
                     cb(err, data);
                 }
             },
             data: stats,
             error: function (err) {
-                ErrorBox.show('velocity');
+                var debugLog = {
+                    state: 'ajaxMerger/velocityError',
+                    lastSavedVersion: lastSaved.version,
+                    lastSavedContent: lastSaved.content,
+                    cContent: content,
+                    cUser: mainConfig.userName,
+                    err: err
+                }
+                ErrorBox.show('velocity', JSON.stringify(debugLog));
                 warn(err);
                 //cb(err,null);
             },
@@ -172,7 +188,14 @@ define([
     var bumpVersion = function (cb, versionData) {
         var callback = function (e, out) {
             if (e) {
-                mainConfig.safeCrash('updateversion');
+                var debugLog = {
+                    state: 'bumpVersion',
+                    lastSavedVersion: lastSaved.version,
+                    lastSavedContent: lastSaved.content,
+                    cUser: mainConfig.userName,
+                    cContent: mainConfig.getTextValue()
+                }
+                mainConfig.safeCrash('updateversion', JSON.stringify(debugLog));
                 warn(e);
             } else if (out) {
                 debug("Triggering lastSaved refresh on remote clients");
@@ -236,7 +259,15 @@ define([
                 andThen();
             },
             error: function (jqxhr, err, cause) {
-                ErrorBox.show('save');
+                var debugLog = {
+                    state: 'saveDocument',
+                    lastSavedVersion: lastSaved.version,
+                    lastSavedContent: lastSaved.content,
+                    cUser: mainConfig.userName,
+                    cContent: mainConfig.getTextValue(),
+                    err: err
+                }
+                ErrorBox.show('save', JSON.stringify(debugLog));
                 warn(err);
                 // Don't callback, this way in case of error we will keep trying.
                 //andThen();
@@ -723,7 +754,14 @@ define([
             document.observe('xwiki:document:saved', onSavedHandler);
 
             var onSaveFailedHandler = mainConfig.onSaveFailed = function (ev) {
-                ErrorBox.show('save');
+                var debugLog = {
+                    state: 'savedFailed',
+                    lastSavedVersion: lastSaved.version,
+                    lastSavedContent: lastSaved.content,
+                    cUser: mainConfig.userName,
+                    cContent: mainConfig.getTextValue()
+                }
+                ErrorBox.show('save', JSON.stringify(debugLog));
                 warn("save failed!!!");
             };
             document.stopObserving('xwiki:document:saveFailed');

@@ -35,13 +35,14 @@ The Realtime Editor's back end does not seem to be available. You can reload the
 
 )))
 
-(% class="realtime-debug" %)(((
+(% class="realtime-debuglog" %)(((
 
-= Debug Log =
-
-The following is a full history of this realtime session:
-
-{{html clean=false}}<textarea class="realtime-debug" cols="60" rows="10"></textarea>{{/html}}
+{{html clean=false}}
+<hr>
+Please consider reporting a bug at <a href="http://jira.xwiki.org/browse/RTWYSIWYG" target="_blank" rel="noopener noreferrer">http://jira.xwiki.org/browse/RTWYSIWYG</a> and include the following content.<br>
+<b>Privacy note</b>: This contains data about the document you were working on, including its content.
+<textarea class="realtime-debug" cols="60" rows="4"></textarea>
+{{/html}}
 
 )))
 

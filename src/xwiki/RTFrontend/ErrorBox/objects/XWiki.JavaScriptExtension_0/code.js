@@ -6,7 +6,7 @@ define(function () {
     // END VELOCITY
 
     /** different types of popups, see RTWysiwyg.ErrorBox content */
-    var ELEMS = [ 'error', 'disconnected', 'debug', 'merge', 'parse', 'unavailable', 'save', 'velocity', 'updateversion', 'keepremote', 'converthtml'];
+    var ELEMS = [ 'error', 'disconnected', 'debuglog', 'merge', 'parse', 'unavailable', 'save', 'velocity', 'updateversion', 'keepremote', 'converthtml'];
 
     var modal;
 
@@ -52,16 +52,17 @@ define(function () {
         elems[ELEMS[i]] = pageElem.getElementsByClassName('realtime-' + ELEMS[i])[0];
     }
 
-    var show = module.exports.show = function (type, content, internalData) {
+    var show = module.exports.show = function (type, debugLog) {
 
         new ModalPopup({ then: function (elem) {
             for (var name in elems) {
                 if (type !== name) { continue; }
                 elem.appendChild(elems[name]);
-                var con = elem.getElementsByClassName('realtime-content')[0];
-                if (con) { con.value = content; }
-                var data = elem.getElementsByClassName('realtime-debug')[0];
-                if (data) { data.value = internalData; }
+                if (debugLog) {
+                    elem.appendChild(elems['debuglog']);
+                    var data = elem.getElementsByClassName('realtime-debug')[0];
+                    data.value = debugLog;
+                }
                 return;
             }
             elem.textContent = "error of unknown type ["+type+"]";
