@@ -45,8 +45,7 @@ define(['RTFrontend_realtime_input',
             network : network,
             userName : userName || '',
             channel : key,
-            crypto : configData.crypto || null,
-            transformFunction : configData.transformFunction,
+            crypto : configData.crypto || null
         };
 
         var updateUserData = function (textData) {

@@ -813,8 +813,7 @@ define([
             network : netfluxNetwork,
             userName : userName || '',
             channel : channel,
-            crypto : Crypto || null,
-            transformFunction : JsonOT.validate,
+            crypto : Crypto || null
         };
         var module = window.SAVER_MODULE = {};
         mainConfig.initializing = true;
