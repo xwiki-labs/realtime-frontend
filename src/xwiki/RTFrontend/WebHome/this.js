@@ -4,6 +4,7 @@ XWikiDoc(function (doc, XWiki) {
     doc.addAttachment("bower_components/chainpad/chainpad.dist.js");
     doc.addAttachment("bower_components/chainpad-crypto-stub/stub.js");
     doc.addAttachment("bower_components/chainpad-json-validator/json-ot.js");
+    doc.addAttachment("bower_components/chainpad-json-validator/transform.js");
     doc.addAttachment("bower_components/chainpad-netflux/chainpad-netflux.js");
     doc.addAttachment("bower_components/diff-dom/diffDOM.js");
     doc.addAttachment("bower_components/es6-promise/es6-promise.min.js");

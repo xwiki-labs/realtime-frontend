@@ -60,6 +60,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
         '/bower_components/chainpad-json-validator/json-ot.js': "$document.getAttachmentURL('json-ot.js')",
 
+        RTFrontend_json_transform: "$document.getAttachmentURL('transform.js')",
+        '/bower_components/chainpad-json-validator/transform.js': "$document.getAttachmentURL('transform.js')",
+
         RTFrontend_hyperjson: "$document.getAttachmentURL('hyperjson.js')",
         '/bower_components/hyperjson/hyperjson.js': "$document.getAttachmentURL('hyperjson.js')",
 
