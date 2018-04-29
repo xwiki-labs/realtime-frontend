@@ -407,9 +407,13 @@ define([
                                     debug("User chose to use the remote version!");
                                     // unset the merge dialog flag
                                     mergeDialogCurrentlyDisplayed = false;
+                                    var restURL = XWiki.currentDocument.getRestURL();
+                                    if (typeof $('form#edit input[name=defaultLanguage]').val() === 'undefined') {
+                                      restURL = restURL + "/translations/" + $('form#edit input[name=language]').val()
+                                    }
 
                                     $.ajax({
-                                        url: XWiki.currentDocument.getRestURL()+'?media=json',
+                                        url: restURL + '?media=json',
                                         method: 'GET',
                                         dataType: 'json',
                                         success: function (data) {
