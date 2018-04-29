@@ -41,6 +41,41 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         redirectDialog_join: "Join the realtime {0} session",
         redirectDialog_create: "Create a new realtime {0} session"
     };
+    if (document.documentElement.lang==="fr") {
+      MESSAGES = module.messages = {
+        allowRealtime: "Collaboration temps-réel",
+        joinSession: "Rejoindre la session de collaboration temps-réel",
+
+        sessionInProgress: "Une session de collaboration temps-réel est en cours:",
+
+        disconnected: "Déconnecté",
+        myself: "Moi",
+        guest: "Invité",
+        guests: "Invités",
+        and: "et",
+        editingWith: "Edition avec:",
+        debug: "Debug",
+        initializing: "Initialisation...",
+        lag: "Lag:",
+        saved: "Sauvegarde: v{0}",
+        'merge overwrite': "La sessions temps-réel a été écrasée avec le dernier contenu sauvegardé",
+        savedRemote: 'v{0} sauvegardé par {1}',
+        savedRemoteNoMerge: 'v{0} sauvergardé {1} dans {2} - Enregistrez pour fusionner le contenu.',
+        conflictResolved: 'Conflit résolu par un utilisateur distant, version v{0}',
+        mergeDialog_prompt: "Un changement a été réalisé en dehors de la session temps-réel, "+
+            "et le serveur n'a pas pu fusionner la modification avec votre version. "+
+            "Que voulez vous faire ?",
+        mergeDialog_keepRealtime: "Garder la session temps-réel",
+        mergeDialog_keepRemote:   "Garder les changements distants",
+
+        redirectDialog_prompt: "Une session temps-réel existe déjà pour ce document. "+
+            "Voulez-vous la rejoindre ?",
+        redirectDialog_plural_prompt: "Plusieurs sessions temps-réel existent pour ce document. "+
+            "Quelle session voulez-vous rejoindre ?",
+        redirectDialog_join: "Rejoindre la session {0}",
+        redirectDialog_create: "Créer une nouvelle session {0}"
+      };
+    }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
     var PATHS = {
         RTFrontend_chainpad: "$document.getAttachmentURL('chainpad.dist.js')",

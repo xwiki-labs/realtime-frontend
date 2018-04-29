@@ -1,6 +1,31 @@
 define(function () {
-    var out = {};
+  var out = {};
 
+  if (document.documentElement.lang=="fr") {
+    out.errorBox_errorType_disconnected = 'Connection Perdue';
+    out.errorBox_errorExplanation_disconnected = [
+        'La connection au serveur a été perdue, vous pouvez vous reconnecter en rechargeant la page ',
+        'en cliquant en dehors de cette boîte de dialogue.'
+    ].join('');
+
+    out.editingAlone = 'Edition seul(e)';
+    out.editingWithOneOtherPerson = 'Edition avec une autre personne';
+    out.editingWith = 'Edition avec';
+    out.otherPeople = 'autres personnes';
+    out.disconnected = 'Déconnecté';
+    out.synchronizing = 'Synchronisation';
+    out.reconnecting = 'Reconnection...';
+    out.lag = 'Lag';
+
+    out.initialState = [
+        '<p>',
+        '</p>',
+    ].join('');
+
+    out.codeInitialState = [
+        '\n'
+    ].join('');
+  } else {
     out.errorBox_errorType_disconnected = 'Connection Lost';
     out.errorBox_errorExplanation_disconnected = [
         'Lost connection to server, you may reconnect by reloading the page or review your work ',
@@ -18,27 +43,13 @@ define(function () {
 
     out.initialState = [
         '<p>',
-        'This is <strong>CryptPad</strong>, the zero knowledge realtime collaborative editor.',
-        '<br>',
-        'What you type here is encrypted so only people who have the link can access it.',
-        '<br>',
-        'Even the server cannot see what you type.',
-        '</p>',
-        '<p>',
-        '<small>',
-        '<i>What you see here, what you hear here, when you leave here, let it stay here</i>',
-        '</small>',
         '</p>',
     ].join('');
 
     out.codeInitialState = [
-        '/*\n',
-        'This is CryptPad, the zero knowledge realtime collaborative editor.\n',
-        'What you type here is encrypted so only people who have the link can access it.\n',
-        'Even the server cannot see what you type.\n',
-        'What you see here, what you hear here, when you leave here, let it stay here\n',
-        '*/'
+        '\n'
     ].join('');
+  }
 
-    return out;
+  return out;
 });
