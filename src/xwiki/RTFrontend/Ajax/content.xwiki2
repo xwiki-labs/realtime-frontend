@@ -36,7 +36,7 @@
     #end
 ##
     #if ("$!{request.convertHTML}" == "1")
-        #set ($xdom = $services.rendering.parse($rtLiveContent, 'html/4.01'))
+        #set ($xdom = $services.rendering.parse($rtLiveContent, 'xhtml/1.0'))
         #set ($rtLiveContent = $services.rendering.render($xdom, $latestDocument.syntax.toIdString()))
     #end
 ##
