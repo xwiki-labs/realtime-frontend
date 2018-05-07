@@ -14,5 +14,5 @@
 })
 #set ($output = $xwiki.getDocument('CKEditor.ContentSheet').getRenderedContent())
 #set ($discard = $response.writer.print($output))
-#set ($discard = $response.setContentLength($output.length()))
+#set ($discard = $xcontext.setFinished(true))
 {{/velocity}}

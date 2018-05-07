@@ -107,7 +107,7 @@
 #end
 ##
 #set($discard = $response.setContentType("application/json"))
-#set($out = $jsontool.serialize($mymap))
-$response.getOutputStream().write($out.getBytes("UTF-8"))
-$xcontext.setFinished(true)
+#set($output = $jsontool.serialize($mymap))
+#set ($discard = $response.writer.print($output))
+#set ($discard = $xcontext.setFinished(true))
 {{/velocity}}
