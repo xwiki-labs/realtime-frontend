@@ -9,7 +9,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var DEFAULT_LANGUAGE = "$xwiki.getXWikiPreference('default_language')";
     var LOCALSTORAGE_DISALLOW = 'realtime-disallow';
     var MESSAGES = module.messages = {
-        allowRealtime: "Allow Realtime Collaboration", // TODO: translate
+        allowRealtime: "Allow Realtime Collaboration",
         joinSession: "Join Realtime Collaborative Session",
 
         sessionInProgress: "A Realtime Editor session is in progress:",
@@ -39,7 +39,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         redirectDialog_plural_prompt: "Different Realtime sessions already exist for that document. "+
             "Which session do you want to join?",
         redirectDialog_join: "Join the realtime {0} session",
-        redirectDialog_create: "Create a new realtime {0} session"
+        redirectDialog_create: "Request a new realtime {0} session",
+
+        requestASession: "The document is locked by another user. Do you want to request a collaborative session?",
+        requestDialog_prompt: "Someone wants to edit this document with you. Do you accept to create a collaborative session?",
+        requestDialog_create: "Save and create a {0} collaborative session",
+        requestDialog_reject: "Stay offline and keep the document locked",
+        rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
+        rejectDialog_OK: 'OK',
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -73,7 +80,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         redirectDialog_plural_prompt: "Plusieurs sessions temps-réel existent pour ce document. "+
             "Quelle session voulez-vous rejoindre ?",
         redirectDialog_join: "Rejoindre la session {0}",
-        redirectDialog_create: "Créer une nouvelle session {0}"
+        redirectDialog_create: "Créer une nouvelle session {0}",
+
+        requestASession: "Le document est verrouillé par un autre utilisateur. Souhaitez-vous demander une session collaborative ?",
+        requestDialog_prompt: "Un autre utilisateur souhaite modifier ce document. Acceptez-vous de créer une session collaborative ?",
+        requestDialog_create: "Sauver et créer une session {0} collaborative",
+        requestDialog_reject: "Garder le document verrouillé",
+        rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
+        rejectDialog_OK: 'OK',
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -83,6 +97,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_realtime_input: "$document.getAttachmentURL('chainpad-netflux.js')",
         '/bower_components/chainpad-netflux/chainpad-netflux.js': "$document.getAttachmentURL('chainpad-netflux.js')",
 
+        RTFrontend_netflux: "$document.getAttachmentURL('netflux-client.js')",
         RTFrontend_saver: "$document.getAttachmentURL('saver.js')",
         RTFrontend_interface: "$document.getAttachmentURL('interface.js')",
         RTFrontend_toolbar: "$document.getAttachmentURL('toolbar.js')",
@@ -195,6 +210,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return force.length? force[0] : false;
     };
     var isForced = module.isForced = (window.location.href.indexOf("force=1") >= 0);
+    var isRt = module.isRt = (window.location.href.indexOf("realtime=1") >= 0);
 
     // used to insert some descriptive text before the lock link
     var prependLink = function (link, text) {
@@ -302,13 +318,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 // determine if it's a realtime session
                 if (active) {
                     console.log("Found an active realtime");
-                    if (realtimeDisallowed()) {
+                    //if (realtimeDisallowed()) {
                         // do nothing
-                    } else {
+                    //} else {
                         displayModal(null, types, null, info);
-                    }
+                    //}
                 } else {
                     console.log("Couldn't find an active realtime session");
+                    displayModal(null, null, null, info);
                 }
             });
         } else {
@@ -318,6 +335,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
     var displayModal = module.displayModal = function(createType, existingTypes, callback, info) {
         if(XWiki.widgets.RealtimeCreateModal) { return; };
+        existingTypes = existingTypes || [];
         XWiki.widgets.RealtimeCreateModal = Class.create(XWiki.widgets.ModalPopup, {
             /** Default parameters can be added to the custom class. */
             defaultInteractionParameters : {
@@ -334,8 +352,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                     },
                     {
                         displayCloseButton : true,
-                        verticalPosition : "top",
-                        backgroundColor : "#FFF"
+                        verticalPosition : "center",
+                        backgroundColor : "#FFF",
+                        removeOnClose : true
                     }
                 );
                 this.showDialog();
@@ -350,19 +369,22 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 var classesButtons = '';
                 existingTypes.forEach(function (elmt) { classesButtons += " realtime-button-"+elmt; });
                 var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'+classesButtons});
+                $(buttonsDiv).data('modal', modal);
 
                 // Add text description
                 if (existingTypes.length > 1) {
                     content.insert(MESSAGES.redirectDialog_plural_prompt);
-                } else {
+                } else if (existingTypes.length === 1) {
                     content.insert(MESSAGES.sessionInProgress);
+                } else {
+                    content.insert(MESSAGES.requestASession);
                 }
                 content.insert(buttonsDiv);
 
                 // Create new session button
-                var br =  new Element('br');
+                var br = new Element('br');
                 if (createType) {
-                    var buttonCreate =  new Element('button', {'class': 'btn btn-primary'});
+                    var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
                     buttonCreate.insert(MESSAGES.redirectDialog_create.replace(/\{0\}/g, info.name));
                     $(buttonCreate).on('click', function() {
                         callback();
@@ -374,8 +396,197 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 return content;
             }
         });
-        new XWiki.widgets.RealtimeCreateModal();
+        return new XWiki.widgets.RealtimeCreateModal();
     };
+    var cmi = 0;
+    var displayCustomModal = function (content) {
+        var i = cmi++;
+        XWiki.widgets.RealtimeRequestModal = Class.create(XWiki.widgets.ModalPopup, {
+            /** Default parameters can be added to the custom class. */
+            defaultInteractionParameters : {},
+            /** Constructor. Registers the key listener that pops up the dialog. */
+            initialize : function($super, interactionParameters) {
+                this.interactionParameters = Object.extend(Object.clone(this.defaultInteractionParameters), interactionParameters || {});
+                // call constructor from ModalPopup with params content, shortcuts, options
+                $super(
+                this.createContent(this.interactionParameters, this),
+                    {
+                        "show"  : { method : this.showDialog,  keys : [] },
+                        "close" : { method : this.closeDialog, keys : ['Esc'] }
+                    },
+                    {
+                        displayCloseButton : true,
+                        verticalPosition : "center",
+                        backgroundColor : "#FFF",
+                        removeOnClose : true
+                    }
+                );
+                this.showDialog();
+            },
+            /** Get the content of the modal dialog using ajax */
+            createContent : function (data, modal) {
+                $(content).find('button, input').click(function () {
+                    modal.closeDialog();
+                });
+                return content;
+            }
+        });
+        return new XWiki.widgets.RealtimeRequestModal();
+    };
+
+    var getRequestContent = function (info, callback) {
+        var content =  new Element('div', {'class': 'modal-popup'});
+
+        // Create buttons container
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        // Add text description
+        content.insert(MESSAGES.requestDialog_prompt);
+        content.insert(buttonsDiv);
+
+        // Create new session button
+        var br = new Element('br');
+        var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
+        buttonCreate.insert(MESSAGES.requestDialog_create.replace(/\{0\}/g, info.name));
+        $(buttonCreate).on('click', function() {
+            callback(true);
+        });
+        var buttonReject =  new Element('button', {'class': 'btn btn-danger'});
+        buttonReject.insert(MESSAGES.requestDialog_reject);
+        $(buttonReject).on('click', function() {
+            callback(false);
+        });
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonCreate);
+        buttonsDiv.insert(buttonReject);
+        return content;
+    };
+
+    var getRejectContent = function () {
+        var content =  new Element('div', {'class': 'modal-popup'});
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        content.insert(MESSAGES.rejectDialog_prompt);
+        content.insert(buttonsDiv);
+
+        var br = new Element('br');
+        var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
+        buttonCreate.insert(MESSAGES.rejectDialog_OK);
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonCreate);
+        return content;
+    };
+
+    var availableRt = {};
+    module.setAvailableRt = function (type, info, cb) {
+        availableRt[type] = {
+            info: info,
+            cb: cb
+        };
+    };
+
+    var tryParse = function (msg) {
+        try {
+            return JSON.parse(msg);
+        } catch (e) {
+            console.error("Cannot parse the message");
+        }
+    };
+
+    // Join a channel with all users on this page (online and offline)
+    var allRt = {
+        state: false
+    };
+    var joinAllUsers = function () {
+        var config = getConfig();
+        var keyData = [{doc: config.reference, mod: config.language+'/events', editor: "all"}];
+        getKeys(keyData, function (d) {
+            var doc = d && d[config.reference];
+            var ev = doc && doc[config.language+'/events'];
+            if (ev && ev.all) {
+                var key = ev.all.key;
+                var users = ev.all.users;
+                require(['RTFrontend_netflux', 'RTFrontend_errorbox'], function (Netflux, ErrorBox) {
+                    var onError = function (err) {
+                        ErrorBox.show('unavailable');
+                        console.error(err);
+                    };
+                    Netflux.connect(config.WebsocketURL).then(function (network) {
+                        allRt.network = network;
+                        var onOpen = function (wc) {
+                            allRt.userList = wc.members;
+                            allRt.wChan = wc;
+                            // Handle incoming messages
+                            wc.on('message', function (msg, sender) {
+                                var data = tryParse(msg);
+                                if (!data) { return; }
+
+                                // Someone wants to create a realtime session. If the current user is editing
+                                // offline, display the modal
+                                if (data.cmd === "request") {
+                                    if (lock) { return; }
+                                    if (!data.type) { return; }
+                                    var res = {
+                                        cmd: "answer",
+                                        type: data.type
+                                    };
+                                    // Make sure realtime is available for the requested editor
+                                    if (!availableRt[data.type]) {
+                                        res.state = -1;
+                                        return void wc.bcast(JSON.stringify(res));
+                                    }
+                                    // Check if we're not already in realtime
+                                    if (module.isRt) {
+                                        res.state = 2;
+                                        return void wc.bcast(JSON.stringify(res));
+                                    }
+                                    // We're editing offline: display the modal
+                                    var content = getRequestContent(availableRt[data.type].info, function (state) {
+                                        if (state) {
+                                            // Accepted: save and create the realtime session
+                                            availableRt[data.type].cb();
+                                        }
+                                        res.state = state ? 1 : 0;
+                                        return void wc.bcast(JSON.stringify(res));
+                                    });
+                                    return void displayCustomModal(content);
+                                }
+                                // Receiving an answer to a realtime session request
+                                if (data.cmd === "answer") {
+                                    if (!allRt.request) { return; }
+                                    var state = data.state;
+                                    if (state === -1) { return void ErrorBox.show('unavailable'); }
+                                    if (state === 0) {
+                                        // Rejected
+                                        return void displayCustomModal(getRejectContent());
+                                    }
+                                    return void allRt.request(state);
+                                }
+                            });
+                        };
+                        network.join(key).then(onOpen, onError);
+                    }, onError);
+                });
+            }
+        });
+    };
+    module.requestRt = function (type, cb) {
+        if (!allRt.wChan) {
+            return void setTimeout(function () {
+                module.requestRt(type, cb);
+            }, 500);
+        }
+        if (allRt.userList.length === 1) { // no other user
+            return void cb(false);
+        }
+        var data = JSON.stringify({
+            cmd: 'request',
+            type: 'wysiwyg'
+        });
+        allRt.request = cb;
+        allRt.wChan.bcast(data);
+    };
+    joinAllUsers();
 
     return module;
 });

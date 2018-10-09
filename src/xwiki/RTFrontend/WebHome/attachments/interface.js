@@ -34,16 +34,19 @@ define([
         LOCALSTORAGE_DISALLOW = key;
     };
 
+    var allowed = false;
     var realtimeAllowed = Interface.realtimeAllowed = function (bool) {
         if (typeof bool === 'undefined') {
-            var disallow = localStorage.getItem(LOCALSTORAGE_DISALLOW);
+            /*var disallow = localStorage.getItem(LOCALSTORAGE_DISALLOW);
             if (disallow) {
                 return false;
             } else {
                 return true;
-            }
+            }*/
+            return allowed;
         } else {
-            localStorage.setItem(LOCALSTORAGE_DISALLOW, bool? '' : 1);
+            //localStorage.setItem(LOCALSTORAGE_DISALLOW, bool? '' : 1);
+            allowed = bool;
             return bool;
         }
     };
