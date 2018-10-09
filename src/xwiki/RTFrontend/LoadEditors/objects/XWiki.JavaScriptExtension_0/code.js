@@ -47,6 +47,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_reject: "Stay offline and keep the document locked",
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
         rejectDialog_OK: 'OK',
+        conflictsWarning: 'Multiple users are editing this document concurrently.',
+        conflictsWarningInfo: 'You can allow realtime collaboration on this document to avoid save conflicts and data loss.',
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -88,6 +90,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_reject: "Garder le document verrouillé",
         rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
         rejectDialog_OK: 'OK',
+        conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
+        conflictsWarningInfo: "Vous pouvez activer la collaboration temps-réel pour éviter la perte de contenu à cause de conflits.",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -228,6 +232,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 if (arg === 'editor=inline') { return false; }
                 if (arg === 'sheet=CKEditor.EditSheet') { return false; }
                 if (arg === 'force=1') { return false; }
+                if (arg === 'realtime=1') { return false; }
                 else { return true; }
             }).join('&');
         });
@@ -256,7 +261,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             reference: documentReference,
             DEMO_MODE: DEMO_MODE,
             LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW,
-            userAvatarURL: userAvatarUrl
+            userAvatarURL: userAvatarUrl,
+            abort: function () { module.onRealtimeAbort(); }
         };
     };
 
@@ -477,6 +483,25 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return content;
     };
 
+    var warningVisible = false;
+    var displayWarning = function () {
+        if (warningVisible) { return; }
+        var $after = $('#hierarchy');
+        if (!$after.length) { return; }
+                                    console.error('displayWarning');
+        warningVisible = true;
+        var $warning = $('<div>', {
+            'class': 'xwiki-realtime-warning box warningmessage'
+        }).insertAfter($after);
+        $('<strong>').text(MESSAGES.conflictsWarning).appendTo($warning);
+        $('<br>').appendTo($warning);
+        $('<span>').text(MESSAGES.conflictsWarningInfo).appendTo($warning);
+    };
+    var hideWarning = function () {
+        warningVisible = false;
+        $('.xwiki-realtime-warning').remove();
+    };
+
     var availableRt = {};
     module.setAvailableRt = function (type, info, cb) {
         availableRt[type] = {
@@ -493,9 +518,95 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }
     };
 
-    // Join a channel with all users on this page (online and offline)
+    // Join a channel with all users on this page (realtime, offline AND lock page)
+    // 1. This channel allows users on "lock" page to contact the editing user
+    //    and request a collaborative session, using the `request` and `answer` commands
+    // 2. It is also used to know if someone else is editing the document concurrently
+    //    (at least 2 users with 1 editing offline). In this case, a warning message can
+    //    be displayed.
+    //    When someone starts editing the page, they send a `join` message with a
+    //    boolean 'realtime'. When other users receive this message, they can tell if
+    //    there is a risk of conflict and send a `displayWarning` command to the new user.
     var allRt = {
         state: false
+    };
+    var addMessageHandler = function () {
+        if (!allRt.wChan) { return; }
+        var wc = allRt.wChan;
+        var network = allRt.network;
+        // Handle incoming messages
+        wc.on('message', function (msg, sender) {
+            var data = tryParse(msg);
+            if (!data) { return; }
+
+            // Someone wants to create a realtime session. If the current user is editing
+            // offline, display the modal
+            if (data.cmd === "request") {
+                if (lock) { return; }
+                if (!data.type) { return; }
+                var res = {
+                    cmd: "answer",
+                    type: data.type
+                };
+                // Make sure realtime is available for the requested editor
+                if (!availableRt[data.type]) {
+                    res.state = -1;
+                    return void wc.bcast(JSON.stringify(res));
+                }
+                // Check if we're not already in realtime
+                if (module.isRt) {
+                    res.state = 2;
+                    return void wc.bcast(JSON.stringify(res));
+                }
+                // We're editing offline: display the modal
+                var content = getRequestContent(availableRt[data.type].info, function (state) {
+                    if (state) {
+                        // Accepted: save and create the realtime session
+                        availableRt[data.type].cb();
+                    }
+                    res.state = state ? 1 : 0;
+                    return void wc.bcast(JSON.stringify(res));
+                });
+                return void displayCustomModal(content);
+            }
+            // Receiving an answer to a realtime session request
+            if (data.cmd === "answer") {
+                if (!allRt.request) { return; }
+                var state = data.state;
+                if (state === -1) { return void ErrorBox.show('unavailable'); }
+                if (state === 0) {
+                    // Rejected
+                    return void displayCustomModal(getRejectContent());
+                }
+                return void allRt.request(state);
+            }
+            // Someone is joining the channel while we're editing, check if they
+            // are using realtime and if we are
+            if (data.cmd === "join") {
+                if (lock) { return; }
+                if (!data.realtime || !module.isRt) {
+                    displayWarning();
+                    network.sendto(sender, JSON.stringify({
+                        cmd: 'displayWarning'
+                    }));
+                } else if (warningVisible) {
+                    hideWarning();
+                    wc.bcast(JSON.stringify({
+                        cmd: 'isSomeoneOffline'
+                    }));
+                }
+                return;
+            }
+            // Someone wants to know if we're editing offline to know if the warning
+            // message should be displayed
+            if (data.cmd === 'isSomeoneOffline') {
+                if (lock || module.isRt) { return; }
+                network.sendto(sender, JSON.stringify({
+                    cmd: 'displayWarning'
+                }));
+                return;
+            }
+        });
     };
     var joinAllUsers = function () {
         var config = getConfig();
@@ -511,60 +622,37 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         ErrorBox.show('unavailable');
                         console.error(err);
                     };
+                    // Connect to the websocket server
                     Netflux.connect(config.WebsocketURL).then(function (network) {
                         allRt.network = network;
                         var onOpen = function (wc) {
                             allRt.userList = wc.members;
                             allRt.wChan = wc;
-                            // Handle incoming messages
-                            wc.on('message', function (msg, sender) {
-                                var data = tryParse(msg);
-                                if (!data) { return; }
-
-                                // Someone wants to create a realtime session. If the current user is editing
-                                // offline, display the modal
-                                if (data.cmd === "request") {
-                                    if (lock) { return; }
-                                    if (!data.type) { return; }
-                                    var res = {
-                                        cmd: "answer",
-                                        type: data.type
-                                    };
-                                    // Make sure realtime is available for the requested editor
-                                    if (!availableRt[data.type]) {
-                                        res.state = -1;
-                                        return void wc.bcast(JSON.stringify(res));
-                                    }
-                                    // Check if we're not already in realtime
-                                    if (module.isRt) {
-                                        res.state = 2;
-                                        return void wc.bcast(JSON.stringify(res));
-                                    }
-                                    // We're editing offline: display the modal
-                                    var content = getRequestContent(availableRt[data.type].info, function (state) {
-                                        if (state) {
-                                            // Accepted: save and create the realtime session
-                                            availableRt[data.type].cb();
-                                        }
-                                        res.state = state ? 1 : 0;
-                                        return void wc.bcast(JSON.stringify(res));
-                                    });
-                                    return void displayCustomModal(content);
-                                }
-                                // Receiving an answer to a realtime session request
-                                if (data.cmd === "answer") {
-                                    if (!allRt.request) { return; }
-                                    var state = data.state;
-                                    if (state === -1) { return void ErrorBox.show('unavailable'); }
-                                    if (state === 0) {
-                                        // Rejected
-                                        return void displayCustomModal(getRejectContent());
-                                    }
-                                    return void allRt.request(state);
-                                }
-                            });
+                            addMessageHandler();
+                            // If we're in edit mode (not locked), tell the other users
+                            if (!lock) {
+                                return void wc.bcast(JSON.stringify({
+                                    cmd: 'join',
+                                    realtime: module.isRt
+                                }));
+                            }
                         };
+                        // Join the "all" channel
                         network.join(key).then(onOpen, onError);
+                        // Add direct messages handler
+                        network.on('message', function (msg, sender) {
+                            var data = tryParse(msg);
+                            if (!data) { return; }
+
+                            if (data.cmd === 'displayWarning') {
+                                displayWarning();
+                                return;
+                            }
+                        });
+                        // On reconnect, join the "all" channel again
+                        network.on('reconnect', function () {
+                            network.join(key).then(onOpen, onError);
+                        });
                     }, onError);
                 });
             }
@@ -585,6 +673,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         });
         allRt.request = cb;
         allRt.wChan.bcast(data);
+    };
+    module.onRealtimeAbort = function () {
+        module.isRt = false;
+        if (!allRt.wChan) { return; }
+        allRt.wChan.bcast(JSON.stringify({
+            cmd: 'join',
+            realtime: module.isRt
+        }));
     };
     joinAllUsers();
 
