@@ -1,7 +1,7 @@
 define(['jquery', 'xwiki-meta'], function($, xm) {
     var module = {};
     // VELOCITY
-    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')";
+    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')oihjzd";
     var USER = "$!xcontext.getUserReference()" || "xwiki:XWiki.XWikiGuest";
     var PRETTY_USER = "$xwiki.getUserName($xcontext.getUser(), false)";
     var DEMO_MODE = "$!request.getParameter('demoMode')" || false;
@@ -489,12 +489,25 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return content;
     };
 
+    var availableRt = {};
+    module.setAvailableRt = function (type, info, cb) {
+        availableRt[type] = {
+            info: info,
+            cb: cb
+        };
+    };
+
+    var isEditorCompatible = function () {
+        return Object.keys(availableRt).some(function (type) {
+            return (availableRt[type].info.compatible || []).indexOf(XWiki.editor) !== -1;
+        });
+    };
+
     var warningVisible = false;
-    var displayWarning = function () {
+    var displayWarning = function (type) {
         if (warningVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
-                                    console.error('displayWarning');
         warningVisible = true;
         var $warning = $('<div>', {
             'class': 'xwiki-realtime-warning box warningmessage'
@@ -503,17 +516,19 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         $('<br>').appendTo($warning);
         $('<span>').text(MESSAGES.conflictsWarningInfo).appendTo($warning);
     };
+    var displayWsWarning = function (type) {
+        if (warningVisible) { return; }
+        var $after = $('#hierarchy');
+        if (!$after.length) { return; }
+        warningVisible = true;
+        var $warning = $('<div>', {
+            'class': 'xwiki-realtime-warning box warningmessage'
+        }).insertAfter($after);
+        $('<span>').text(MESSAGES.wsError).appendTo($warning);
+    };
     var hideWarning = function () {
         warningVisible = false;
         $('.xwiki-realtime-warning').remove();
-    };
-
-    var availableRt = {};
-    module.setAvailableRt = function (type, info, cb) {
-        availableRt[type] = {
-            info: info,
-            cb: cb
-        };
     };
 
     var tryParse = function (msg) {
@@ -625,7 +640,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 var users = ev.all.users;
                 require(['RTFrontend_netflux', 'RTFrontend_errorbox'], function (Netflux, ErrorBox) {
                     var onError = function (err) {
-                        ErrorBox.show('unavailable');
+                        displayWsWarning();
                         console.error(err);
                     };
                     // Connect to the websocket server
