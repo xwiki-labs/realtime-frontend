@@ -579,6 +579,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                     res.state = 2;
                     return void wc.bcast(JSON.stringify(res));
                 }
+                // Check if our current editor is realtime compatible
+                // i.e. Object editor can't switch to wysiwyg
+                if (!isEditorCompatible()) {
+                    res.state = 0;
+                    return void wc.bcast(JSON.stringify(res));
+                }
                 // We're editing offline: display the modal
                 var content = getRequestContent(availableRt[data.type].info, function (state) {
                     if (state) {
