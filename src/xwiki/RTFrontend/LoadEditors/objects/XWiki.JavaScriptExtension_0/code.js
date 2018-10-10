@@ -1,7 +1,7 @@
 define(['jquery', 'xwiki-meta'], function($, xm) {
     var module = {};
     // VELOCITY
-    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')qzlfi";
+    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')";
     var USER = "$!xcontext.getUserReference()" || "xwiki:XWiki.XWikiGuest";
     var PRETTY_USER = "$xwiki.getUserName($xcontext.getUser(), false)";
     var DEMO_MODE = "$!request.getParameter('demoMode')" || false;
@@ -41,6 +41,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         redirectDialog_join: "Join the realtime {0} session",
         redirectDialog_create: "Request a new realtime {0} session",
 
+        waiting: "Waiting for an answer",
         requestASession: "The document is locked by another user. Do you want to request a collaborative session?",
         requestDialog_prompt: "Someone wants to edit this document with you. Do you accept to create a collaborative session?",
         requestDialog_create: "Save and create a {0} collaborative session",
@@ -89,8 +90,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         redirectDialog_plural_prompt: "Plusieurs sessions temps-réel existent pour ce document. "+
             "Quelle session voulez-vous rejoindre ?",
         redirectDialog_join: "Rejoindre la session {0}",
-        redirectDialog_create: "Créer une nouvelle session {0}",
+        redirectDialog_create: "Demander une nouvelle session {0}",
 
+        waiting: "En attente d'une réponse...",
         requestASession: "Le document est verrouillé par un autre utilisateur. Souhaitez-vous demander une session collaborative ?",
         requestDialog_prompt: "Un autre utilisateur souhaite modifier ce document. Acceptez-vous de créer une session collaborative ?",
         requestDialog_create: "Sauver et créer une session {0} collaborative",
@@ -442,10 +444,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 this.createContent(this.interactionParameters, this),
                     {
                         "show"  : { method : this.showDialog,  keys : [] },
-                        "close" : { method : this.closeDialog, keys : ['Esc'] }
+                        //"close" : { method : this.closeDialog, keys : ['Esc'] }
                     },
                     {
-                        displayCloseButton : true,
+                        displayCloseButton : false,
                         verticalPosition : "center",
                         backgroundColor : "#FFF",
                         removeOnClose : true
@@ -656,6 +658,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 if (state === -1) { return void ErrorBox.show('unavailable'); }
                 if (state === 0) {
                     // Rejected
+                    if ($('.realtime-buttons').length) {
+                        var m = $('.realtime-buttons').data('modal');
+                        if (m) {
+                            m.closeDialog();
+                        }
+                    }
                     return void displayCustomModal(getRejectContent());
                 }
                 return void allRt.request(state);
