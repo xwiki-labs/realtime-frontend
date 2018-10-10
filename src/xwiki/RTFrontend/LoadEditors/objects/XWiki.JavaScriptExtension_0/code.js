@@ -227,8 +227,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
 
     var getDocLock = module.getDocLock = function () {
+        var lockedBy = document.querySelectorAll('p.xwikimessage .wikilink a');
         var force = document.querySelectorAll('a[href*="force=1"][href*="/edit/"]');
-        return force.length? force[0] : false;
+        return (lockedBy.length && force.length) ? force[0] : false;
     };
     var isForced = module.isForced = (window.location.href.indexOf("force=1") >= 0);
     var isRt = module.isRt = (window.location.href.indexOf("realtime=1") >= 0);
