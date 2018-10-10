@@ -24,7 +24,6 @@
     "chainpad-json-validator": "~0.2.4",
     "chainpad-crypto-stub": "~0.1.0",
     "chainpad-netflux": "~0.7.0",
-    "netflux-websocket": "0.1.5",
     "diff-dom": "~2.1.1"
   }
 }
