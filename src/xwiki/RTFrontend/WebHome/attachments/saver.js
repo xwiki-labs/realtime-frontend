@@ -613,6 +613,9 @@ define([
             // callbacks for different use cases
             var saveFinalizer = function (e, shouldSave) {
                 var toSave = mainConfig.getTextValue();
+                if (toSave === null) {
+                    e = "Unable to get the content of the document. Don't save.";
+                }
                 if (e) {
                     warn(e);
                     return;
@@ -652,6 +655,11 @@ define([
                 lastSaved.receivedISAVE = false;
 
                 var toSave = mainConfig.getTextValue();
+                if (toSave === null) {
+                    warn("Unable to get the content of the document. Don't save.");
+                    return;
+                }
+
                 if (lastSaved.content === toSave && !force ) {
                     verbose("No changes made since last save. "+
                         "Avoiding unnecessary commits");

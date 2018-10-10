@@ -49,6 +49,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         rejectDialog_OK: 'OK',
         conflictsWarning: 'Multiple users are editing this document concurrently.',
         conflictsWarningInfo: 'You can allow realtime collaboration on this document to avoid save conflicts and data loss.',
+        wsError: "We were unable to connect you to the realtime system. You won't be warned if other users want to edit the document collaboratively.", // XXX
+
+        ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -92,6 +95,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         rejectDialog_OK: 'OK',
         conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
         conflictsWarningInfo: "Vous pouvez activer la collaboration temps-réel pour éviter la perte de contenu à cause de conflits.",
+        wsError: "Nous n'avons pas réussi à vous connecter au système temps-réel. Vous ne serez pas prévenu si quelqu'un souhaite modifier le document collaborativement.",
+
+        ckError: "Le contenu n'a pas pu être sauvé à cause d'une erreur interne à CKEditor. Vous devriez essayer de copier vos modifications importantes et de recharger la page.",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
