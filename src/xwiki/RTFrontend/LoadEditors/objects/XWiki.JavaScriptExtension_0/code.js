@@ -1,7 +1,7 @@
 define(['jquery', 'xwiki-meta'], function($, xm) {
     var module = {};
     // VELOCITY
-    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')oihjzd";
+    var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')qzlfi";
     var USER = "$!xcontext.getUserReference()" || "xwiki:XWiki.XWikiGuest";
     var PRETTY_USER = "$xwiki.getUserName($xcontext.getUser(), false)";
     var DEMO_MODE = "$!request.getParameter('demoMode')" || false;
@@ -48,9 +48,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
         rejectDialog_OK: 'OK',
         conflictsWarning: 'Multiple users are editing this document concurrently.',
-        conflictsWarningInfo: 'You can allow realtime collaboration on this document to avoid save conflicts and data loss.',
-        wsError: "We were unable to connect you to the realtime system. You won't be warned if other users want to edit the document collaboratively.", // XXX
-
+        conflictsWarningInfoRt: 'You can avoid these problems if they join the collaborative session.',
+        conflictsWarningInfo: 'You can prevent these problems by <strong>copying or saving</strong> your changes and then ',
+        conflictsWarningInfoLink: 'enabling realtime collaboration',
+        wsError: "We were unable to connect you to the realtime system.",
+        wsErrorInfo: "You won't be warned if other users want to edit the document collaboratively and you can't join a collaborative session.", // XXX
+        wsErrorConflicts: "You risk losing content if other users edit the document at the same time.",
+        connectingBox: "Connecting to the collaborative session. Please wait...",
         ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor",
     };
     if (document.documentElement.lang==="fr") {
@@ -94,8 +98,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
         rejectDialog_OK: 'OK',
         conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
-        conflictsWarningInfo: "Vous pouvez activer la collaboration temps-réel pour éviter la perte de contenu à cause de conflits.",
-        wsError: "Nous n'avons pas réussi à vous connecter au système temps-réel. Vous ne serez pas prévenu si quelqu'un souhaite modifier le document collaborativement.",
+        conflictsWarningInfo: "Vous pouvez éviter ces problèmes s'ils rejoingnent la session collaborative.",
+        conflictsWarningInfo: 'Vous pouvez éviter ces problèmes en <strong>copiant ou sauvant</strong> vos modifications puis en ',
+        conflictsWarningInfoLink: 'activant la collaboration en temps-réel',
+        wsError: "Nous n'avons pas réussi à vous connecter au système temps-réel.",
+        wsErrorInfo: "Vous ne serez pas prévenu si quelqu'un souhaite modifier le document collaborativement et vous ne pouvez pas rejoindre une session collaborative.",
+        wsErrorConflicts: "Vous risquez de perdre du contenu si d'autres personnes modifient le document en même temps.",
+        connectingBox: "Connexion à la session collaborative. Veuillez patienter...",
 
         ckError: "Le contenu n'a pas pu être sauvé à cause d'une erreur interne à CKEditor. Vous devriez essayer de copier vos modifications importantes et de recharger la page.",
       };
@@ -247,6 +256,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return href;
     }
 
+    var allRt = {
+        state: false
+    };
+
     var getConfig = module.getConfig = function () {
         // Username === <USER>-encoded(<PRETTY_USER>)%2d<random number>
         var userName = USER + '-' + encodeURIComponent(PRETTY_USER + '-').replace(/-/g, '%2d') +
@@ -268,6 +281,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             DEMO_MODE: DEMO_MODE,
             LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW,
             userAvatarURL: userAvatarUrl,
+            network: allRt.network,
             abort: function () { module.onRealtimeAbort(); }
         };
     };
@@ -337,7 +351,11 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                     //}
                 } else {
                     console.log("Couldn't find an active realtime session");
-                    displayModal(null, null, null, info);
+                    module.whenReady(function (rt) {
+                        if (rt) {
+                            displayModal(null, null, null, info);
+                        }
+                    });
                 }
             });
         } else {
@@ -498,13 +516,18 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
 
     var isEditorCompatible = function () {
-        return Object.keys(availableRt).some(function (type) {
-            return (availableRt[type].info.compatible || []).indexOf(XWiki.editor) !== -1;
+        var ret;
+        Object.keys(availableRt).some(function (type) {
+            if ((availableRt[type].info.compatible || []).indexOf(XWiki.editor) !== -1) {
+                ret = type;
+                return true;
+            }
         });
+        return ret;
     };
 
     var warningVisible = false;
-    var displayWarning = function (type) {
+    var displayWarning = function () {
         if (warningVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
@@ -514,21 +537,54 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }).insertAfter($after);
         $('<strong>').text(MESSAGES.conflictsWarning).appendTo($warning);
         $('<br>').appendTo($warning);
-        $('<span>').text(MESSAGES.conflictsWarningInfo).appendTo($warning);
+        $('<span>').text(MESSAGES.wsErrorConflicts).appendTo($warning);
+        var editor = isEditorCompatible();
+        if (!module.isRt && editor) {
+            $('<br>').appendTo($warning);
+            $('<span>').html(MESSAGES.conflictsWarningInfo).appendTo($warning);
+            $('<a>', {
+                href: getRTEditorURL(window.location.href, availableRt[editor].info)
+            }).text(MESSAGES.conflictsWarningInfoLink).appendTo($warning);
+        } else if (module.isRt) {
+            $('<br>').appendTo($warning);
+            $('<span>').text(MESSAGES.conflictsWarningInfoRt).appendTo($warning);
+        }
     };
-    var displayWsWarning = function (type) {
+    var displayWsWarning = function (isError) {
         if (warningVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
         warningVisible = true;
+        var type = isError ? 'errormessage' : 'warningmessage';
         var $warning = $('<div>', {
-            'class': 'xwiki-realtime-warning box warningmessage'
+            'class': 'xwiki-realtime-warning box ' + type
         }).insertAfter($after);
-        $('<span>').text(MESSAGES.wsError).appendTo($warning);
+        $('<strong>').text(MESSAGES.wsError).appendTo($warning);
+        $('<br>').appendTo($warning);
+        $('<span>').text(MESSAGES.wsErrorInfo).appendTo($warning);
+        if (module.isForced) {
+            $('<br>').appendTo($warning);
+            $('<span>').text(MESSAGES.wsErrorConflicts).appendTo($warning);
+        }
     };
     var hideWarning = function () {
         warningVisible = false;
         $('.xwiki-realtime-warning').remove();
+    };
+    var connectingVisible = false;
+    var displayConnecting = function () {
+        if (connectingVisible) { return; }
+        var $after = $('#hierarchy');
+        if (!$after.length) { return; }
+        connectingVisible = true;
+        var $warning = $('<div>', {
+            'class': 'xwiki-realtime-connecting box infomessage'
+        }).insertAfter($after);
+        $('<strong>').text(MESSAGES.connectingBox).appendTo($warning);
+    };
+    var hideConnecting = function () {
+        warningVisible = false;
+        $('.xwiki-realtime-connecting').remove();
     };
 
     var tryParse = function (msg) {
@@ -548,9 +604,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     //    When someone starts editing the page, they send a `join` message with a
     //    boolean 'realtime'. When other users receive this message, they can tell if
     //    there is a risk of conflict and send a `displayWarning` command to the new user.
-    var allRt = {
-        state: false
-    };
     var addMessageHandler = function () {
         if (!allRt.wChan) { return; }
         var wc = allRt.wChan;
@@ -646,6 +699,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 var users = ev.all.users;
                 require(['RTFrontend_netflux', 'RTFrontend_errorbox'], function (Netflux, ErrorBox) {
                     var onError = function (err) {
+                        allRt.error = true;
                         displayWsWarning();
                         console.error(err);
                     };
@@ -710,6 +764,26 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }));
     };
     joinAllUsers();
+
+    module.whenReady = function (cb) {
+        displayConnecting();
+        // We want realtime enabled so we have to wait for the network to be ready
+        if (allRt.network) {
+            hideConnecting();
+            return void cb(true);
+        }
+        if (allRt.error) {
+            // Can't connect to network: hide the warning about "not being warned when some wants RT"
+            // and display error about not being able to enable WS
+            hideConnecting();
+            hideWarning();
+            displayWsWarning(true);
+            return void cb(false);
+        }
+        setTimeout(function () {
+            module.whenReady(cb);
+        }, 100);
+    };
 
     return module;
 });
