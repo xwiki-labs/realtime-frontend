@@ -107,9 +107,11 @@ define(['RTFrontend_realtime_input',
             if (info.state) {
                 myId = info.myId
                 online = true;
+                module.realtime.start();
                 initializing = true;
                 return;
             }
+            module.realtime.abort();
             online = false;
         };
 
