@@ -57,6 +57,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         wsErrorConflicts: "You risk losing content if other users edit the document at the same time.",
         connectingBox: "Connecting to the collaborative session. Please wait...",
         ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor",
+        connectionLost: "You've lost the connection to the collaborative session.",
+        connectionLostInfo: "The editor has been set to read-only mode while we try to reconnect.",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -108,7 +110,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         wsErrorConflicts: "Vous risquez de perdre du contenu si d'autres personnes modifient le document en même temps.",
         connectingBox: "Connexion à la session collaborative. Veuillez patienter...",
 
-        ckError: "Le contenu n'a pas pu être sauvé à cause d'une erreur interne à CKEditor. Vous devriez essayer de copier vos modifications importantes et de recharger la page.",
+        ckError: "Le contenu n'a pas pu être sauvé à cause d'une erreur interne de CKEditor. Vous devriez essayer de copier vos modifications importantes et de recharger la page.",
+        connectionLost: "Vous avez perdu la connexion à la session collaborative.",
+        connectionLostInfo: "L'éditeur est passé en mode lecture-seule pendant que nous essayons de vous reconnecter.",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -589,6 +593,23 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         warningVisible = false;
         $('.xwiki-realtime-connecting').remove();
     };
+    var wsErrorVisible = false;
+    var displayWsError = function () {
+        if (wsErrorVisible) { return; }
+        var $after = $('#hierarchy');
+        if (!$after.length) { return; }
+        wsErrorVisible = true;
+        var $warning = $('<div>', {
+            'class': 'xwiki-realtime-disconnected box errormessage'
+        }).insertAfter($after);
+        $('<strong>').text(MESSAGES.connectionLost).appendTo($warning);
+        $('<br>').appendTo($warning);
+        $('<span>').text(MESSAGES.connectionLostInfo).appendTo($warning);
+    };
+    var hideWsError = function () {
+        wsErrorVisible = false;
+        $('.xwiki-realtime-disconnected').remove();
+    };
 
     var tryParse = function (msg) {
         try {
@@ -741,7 +762,16 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         });
                         // On reconnect, join the "all" channel again
                         network.on('reconnect', function () {
+                            hideWarning();
+                            hideWsError();
                             network.join(key).then(onOpen, onError);
+                        });
+                        network.on('disconnect', function () {
+                            if (module.isRt) {
+                                displayWsError();
+                            } else {
+                                displayWsWarning();
+                            }
                         });
                     }, onError);
                 });
