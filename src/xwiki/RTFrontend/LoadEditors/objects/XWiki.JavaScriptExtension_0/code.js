@@ -59,6 +59,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor",
         connectionLost: "You've lost the connection to the collaborative session.",
         connectionLostInfo: "The editor has been set to read-only mode while we try to reconnect.",
+
+        reloadDialog_prompt: "The realtime session was terminated while you were offline. The document is now in read-only mode. You can close this modal and copy your latest changes if they were not saved and then reload the page to edit it again.",
+        reloadDialog_reload: "Reload the page now",
+        reloadDialog_exit: "Close this dialog",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -113,6 +117,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         ckError: "Le contenu n'a pas pu être sauvé à cause d'une erreur interne de CKEditor. Vous devriez essayer de copier vos modifications importantes et de recharger la page.",
         connectionLost: "Vous avez perdu la connexion à la session collaborative.",
         connectionLostInfo: "L'éditeur est passé en mode lecture-seule pendant que nous essayons de vous reconnecter.",
+
+        reloadDialog_prompt: "La session collaborative a été interrompue pendant que vous étiez déconnecté. Le document est désormais en mode lecture-seule. Vous pouvez fermer ce message et copier vos derniers changements s'ils n'ont pas été sauvés, puis recharger la page pour reprendre l'édition.",
+        reloadDialog_reload: "Recharger la page maintenant",
+        reloadDialog_exit: "Fermer ce message",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -289,7 +297,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW,
             userAvatarURL: userAvatarUrl,
             network: allRt.network,
-            abort: function () { module.onRealtimeAbort(); }
+            abort: function () { module.onRealtimeAbort(); },
+            onKeysChanged: function () { module.onKeysChanged(); },
         };
     };
 
@@ -511,6 +520,27 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         buttonCreate.insert(MESSAGES.rejectDialog_OK);
         buttonsDiv.insert(br);
         buttonsDiv.insert(buttonCreate);
+        return content;
+    };
+
+    var getReloadContent = function () {
+        var content =  new Element('div', {'class': 'modal-popup'});
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        content.insert(MESSAGES.reloadDialog_prompt);
+        content.insert(buttonsDiv);
+
+        var br = new Element('br');
+        var buttonReload = new Element('button', {'class': 'btn btn-default'});
+        buttonReload.insert(MESSAGES.reloadDialog_reload);
+        $(buttonReload).on('click', function() {
+            window.location.reload();
+        });
+        var buttonExit =  new Element('button', {'class': 'btn btn-primary'});
+        buttonExit.insert(MESSAGES.reloadDialog_exit);
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonExit);
+        buttonsDiv.insert(buttonReload);
         return content;
     };
 
@@ -771,7 +801,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         network.on('reconnect', function () {
                             hideWarning();
                             hideWsError();
-                            network.join(key).then(onOpen, onError);
+                            getKeys(keyData, function (d) {
+                                var doc = d && d[config.reference];
+                                var ev = doc && doc[config.language+'/events'];
+                                var key = ev.all.key;
+                                network.join(key).then(onOpen, onError);
+                            });
                         });
                         network.on('disconnect', function () {
                             if (module.isRt) {
@@ -829,6 +864,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         setTimeout(function () {
             module.whenReady(cb);
         }, 100);
+    };
+
+    module.onKeysChanged = function () {
+        // The channel keys have changed while we were offline.
+        // We may not have the latest version of the document.
+        // The safest solution is to reload.
+        var content = getReloadContent();
+        return void displayCustomModal(content);
     };
 
     return module;

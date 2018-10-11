@@ -133,7 +133,10 @@ define(['RTFrontend_realtime_input',
 
         var leaveChannel = userData.leave = function() {
             clearInterval(to);
-            module.leave();
+            try {
+                // Don't throw error if the channel is already removed
+                module.leave();
+            } catch (e) {}
         };
 
         realtimeInput.start(config);
