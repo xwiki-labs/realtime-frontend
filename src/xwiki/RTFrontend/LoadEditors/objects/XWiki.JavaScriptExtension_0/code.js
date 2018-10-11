@@ -632,6 +632,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (!allRt.wChan) { return; }
         var wc = allRt.wChan;
         var network = allRt.network;
+        // Handle leave events
+        wc.on('leave', function () {
+            hideWarning();
+            wc.bcast(JSON.stringify({
+                cmd: 'isSomeoneOffline'
+            }));
+        });
         // Handle incoming messages
         wc.on('message', function (msg, sender) {
             var data = tryParse(msg);
