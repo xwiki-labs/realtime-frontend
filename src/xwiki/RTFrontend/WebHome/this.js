@@ -10,5 +10,4 @@ XWikiDoc(function (doc, XWiki) {
     doc.addAttachment("bower_components/netflux-websocket/netflux-client.js");
     doc.addAttachment("bower_components/rangy/rangy-core.min.js");
     doc.addAttachment("bower_components/json.sortify/dist/JSON.sortify.js");
-    doc.addAttachment("bower_components/reconnectingWebsocket/reconnecting-websocket.js");
 });
