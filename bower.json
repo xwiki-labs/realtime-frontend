@@ -19,9 +19,7 @@
     "rangy": "rangy-release#~1.3.0",
     "json.sortify": "~2.1.0",
     "hyperjson": "~1.4.0",
-    "textpatcher": "~1.3.3",
     "chainpad": "~5.1.0",
-    "chainpad-json-validator": "~0.2.4",
     "chainpad-crypto-stub": "~0.1.0",
     "chainpad-netflux": "~0.7.0",
     "diff-dom": "~2.1.1"

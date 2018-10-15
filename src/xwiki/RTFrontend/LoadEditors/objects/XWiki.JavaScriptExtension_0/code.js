@@ -150,9 +150,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_messages: "$document.getAttachmentURL('messages.js')",
         RTFrontend_tests: "$document.getAttachmentURL('TypingTests.js')",
 
-        RTFrontend_json_transform: "$document.getAttachmentURL('transform.js')",
-        '/bower_components/chainpad-json-validator/transform.js': "$document.getAttachmentURL('transform.js')",
-
         RTFrontend_hyperjson: "$document.getAttachmentURL('hyperjson.js')",
         '/bower_components/hyperjson/hyperjson.js': "$document.getAttachmentURL('hyperjson.js')",
 
