@@ -5,7 +5,12 @@
         {error:"data: $editorData"}
     #else
         #set ($mymap = {})
-        #set ($dataList = $jsontool.parse($editorData))
+        ## JSONTool#parse is deprecated in recent versions so we use fromString to avoid warnings
+        #if ($jsontool.fromString("{}") == {})
+            #set ($dataList = $jsontool.fromString($editorData))
+        #else
+            #set ($dataList = $jsontool.parse($editorData))
+        #end
         #foreach($data in $dataList)
             #if(!$mymap[$data.doc])
                 #set($mymap[$data.doc] = $collectionstool.map)
