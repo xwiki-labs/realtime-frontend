@@ -8,6 +8,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     DEMO_MODE = (DEMO_MODE === true || DEMO_MODE === "true") ? true : false;
     var DEFAULT_LANGUAGE = "$xwiki.getXWikiPreference('default_language')";
     var LOCALSTORAGE_DISALLOW = 'realtime-disallow';
+    //var ADVANCED_USER = "$!isAdvancedUser";
+    var ADVANCED_USER = true;
     var MESSAGES = module.messages = {
         allowRealtime: "Allow Realtime Collaboration",
         joinSession: "Join Realtime Collaborative Session",
@@ -63,6 +65,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         reloadDialog_prompt: "The realtime session was terminated while you were offline. The document is now in read-only mode. You can close this modal and copy your latest changes if they were not saved and then reload the page to edit it again.",
         reloadDialog_reload: "Reload the page now",
         reloadDialog_exit: "Close this dialog",
+
+        disableDialog_prompt: "You're going to leave the collaborative session. If other users are still editing the document, you risk losing content. Do you want to continue?",
+        disableDialog_ok: "Leave the collaborative session",
+        disableDialog_exit: "Cancel",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -121,6 +127,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         reloadDialog_prompt: "La session collaborative a été interrompue pendant que vous étiez déconnecté. Le document est désormais en mode lecture-seule. Vous pouvez fermer ce message et copier vos derniers changements s'ils n'ont pas été sauvés, puis recharger la page pour reprendre l'édition.",
         reloadDialog_reload: "Recharger la page maintenant",
         reloadDialog_exit: "Fermer ce message",
+
+        disableDialog_prompt: "Vous êtes sur le point de quitter la session collaborative. Si d'autres utilisateurs sont encore présents et effectuent des modifications, vous risquez de perdre des données. Souhaitez-vous continuer ?",
+        disableDialog_ok: "Quitter la session collaborative",
+        disableDialog_exit: "Annuler",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -290,9 +300,11 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             DEMO_MODE: DEMO_MODE,
             LOCALSTORAGE_DISALLOW: LOCALSTORAGE_DISALLOW,
             userAvatarURL: userAvatarUrl,
+            isAdvancedUser: ADVANCED_USER,
             network: allRt.network,
             abort: function () { module.onRealtimeAbort(); },
             onKeysChanged: function () { module.onKeysChanged(); },
+            displayDisableModal: function (cb) { module.displayDisableModal(cb); },
         };
     };
 
@@ -536,6 +548,30 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         buttonsDiv.insert(buttonExit);
         buttonsDiv.insert(buttonReload);
         return content;
+    };
+
+    module.displayDisableModal = function (cb) {
+        var content =  new Element('div', {'class': 'modal-popup'});
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        content.insert(MESSAGES.disableDialog_prompt);
+        content.insert(buttonsDiv);
+
+        var br = new Element('br');
+        var buttonOk = new Element('button', {'class': 'btn btn-primary'});
+        buttonOk.insert(MESSAGES.disableDialog_ok);
+        $(buttonOk).on('click', function() {
+            cb(true);
+        });
+        var buttonExit =  new Element('button', {'class': 'btn btn-default'});
+        $(buttonExit).on('click', function() {
+            cb(false);
+        });
+        buttonExit.insert(MESSAGES.reloadDialog_exit);
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonExit);
+        buttonsDiv.insert(buttonOk);
+        return void displayCustomModal(content);
     };
 
     var availableRt = {};
