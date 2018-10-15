@@ -140,9 +140,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         RTFrontend_messages: "$document.getAttachmentURL('messages.js')",
         RTFrontend_tests: "$document.getAttachmentURL('TypingTests.js')",
 
-        RTFrontend_json_ot: "$document.getAttachmentURL('json-ot.js')",
-        '/bower_components/chainpad-json-validator/json-ot.js': "$document.getAttachmentURL('json-ot.js')",
-
         RTFrontend_json_transform: "$document.getAttachmentURL('transform.js')",
         '/bower_components/chainpad-json-validator/transform.js': "$document.getAttachmentURL('transform.js')",
 
@@ -162,9 +159,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         '/bower_components/netflux-websocket/netflux-client.js': "$document.getAttachmentURL('netflux-client.js')",
 
         '/bower_components/reconnectingWebsocket/reconnecting-websocket.js': "$document.getAttachmentURL('reconnecting-websocket.js')",
-
-        RTFrontend_text_patcher: "$document.getAttachmentURL('TextPatcher.js')",
-        '/bower_components/textpatcher/TextPatcher.js': "$document.getAttachmentURL('TextPatcher.js')",
 
         RTFrontend_rangy: "$document.getAttachmentURL('rangy-core.min.js')",
         '/bower_components/rangy/rangy-core.min.js': "$document.getAttachmentURL('rangy-core.min.js')",

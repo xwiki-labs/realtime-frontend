@@ -1,6 +1,5 @@
 define(['RTFrontend_realtime_input',
-        'RTFrontend_text_patcher',
-        'json.sortify'], function(realtimeInput, TextPatcher, JSONSortify) {
+        'json.sortify'], function(realtimeInput, JSONSortify) {
 
     var stringify = function (obj) {
         return JSONSortify(obj);
@@ -64,7 +63,7 @@ define(['RTFrontend_realtime_input',
         var onRemote = config.onRemote = function (info) {
             if (initializing) { return; }
 
-            var userDoc = module.realtime.getUserDoc();
+            var userDoc = module.chainpad.getUserDoc();
 
             updateUserData(userDoc);
         };
@@ -72,9 +71,9 @@ define(['RTFrontend_realtime_input',
         var first = true;
         var onReady = config.onReady =  function(info) {
             module.leave = info.leave;
-            var realtime = module.realtime = info.realtime;
+            module.chainpad = info.realtime;
             if (!first) {
-                var userDoc = realtime.getUserDoc();
+                var userDoc = module.chainpad.getUserDoc();
                 updateUserData(userDoc);
                 initializing = false;
                 onLocal();
@@ -82,12 +81,8 @@ define(['RTFrontend_realtime_input',
             }
 
             first = false;
-            module.patchText = TextPatcher.create({
-                realtime : realtime,
-                logging : false
-            });
 
-            var userDoc = realtime.getUserDoc();
+            var userDoc = module.chainpad.getUserDoc();
             updateUserData(userDoc);
             initializing = false;
 
@@ -98,8 +93,8 @@ define(['RTFrontend_realtime_input',
             if (!online) { return; }
 
             var shjson = stringify(userData);
-            module.patchText(shjson);
-            if (module.realtime.getUserDoc() !== shjson) {
+            module.chainpad.contentUpdate(shjson);
+            if (module.chainpad.getUserDoc() !== shjson) {
                 warn("userDoc !== shjson");
             }
         };
@@ -107,11 +102,11 @@ define(['RTFrontend_realtime_input',
             if (info.state) {
                 myId = info.myId
                 online = true;
-                module.realtime.start();
+                module.chainpad.start();
                 initializing = true;
                 return;
             }
-            module.realtime.abort();
+            module.chainpad.abort();
             online = false;
         };
 
