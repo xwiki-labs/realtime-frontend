@@ -1,4 +1,4 @@
-{{velocity}}
+{{velocity wiki="false"}}
 #if ($xcontext.action == "get")
     #set ($editorData = "$!request.getParameter('data')")
     #if ($editorData == "")
