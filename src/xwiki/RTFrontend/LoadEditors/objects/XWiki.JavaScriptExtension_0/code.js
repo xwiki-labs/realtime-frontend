@@ -264,6 +264,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 if (arg === 'sheet=CKEditor.EditSheet') { return false; }
                 if (arg === 'force=1') { return false; }
                 if (arg === 'realtime=1') { return false; }
+                if (/^section=/.test(arg)) { return false; }
                 else { return true; }
             }).join('&');
         });
