@@ -45,7 +45,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
         waiting: "Waiting for an answer",
         requestASession: "The document is locked by another user. Do you want to request a collaborative session?",
-        requestDialog_prompt: "Someone wants to edit this document with you. Do you accept to create a collaborative session?",
+        requestDialog_prompt: "Someone wants to edit this document with you. Would you like to create a collaborative session?",
         requestDialog_create: "Save and create a {0} collaborative session",
         requestDialog_reject: "Stay offline and keep the document locked",
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
@@ -55,10 +55,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         conflictsWarningInfo: 'You can prevent these problems by <strong>copying or saving</strong> your changes and then ',
         conflictsWarningInfoLink: 'enabling realtime collaboration',
         wsError: "We were unable to connect you to the realtime system.",
-        wsErrorInfo: "You won't be warned if other users want to edit the document collaboratively and you can't join a collaborative session.", // XXX
+        wsErrorInfo: "You won't be warned if other users want to edit the document collaboratively and you can't join a collaborative session.",
         wsErrorConflicts: "You risk losing content if other users edit the document at the same time.",
         connectingBox: "Connecting to the collaborative session. Please wait...",
-        ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor",
+        ckError: "The content cannot be saved because of a CKEditor internal error. You should try to copy your important changes and reload the editor.",
         connectionLost: "You've lost the connection to the collaborative session.",
         connectionLostInfo: "The editor has been set to read-only mode while we try to reconnect.",
 
@@ -66,7 +66,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         reloadDialog_reload: "Reload the page now",
         reloadDialog_exit: "Close this dialog",
 
-        disableDialog_prompt: "You're going to leave the collaborative session. If other users are still editing the document, you risk losing content. Do you want to continue?",
+        disableDialog_prompt: "You are about to leave the collaborative session. If other users are still editing the document, you risk losing content. Do you want to continue?",
         disableDialog_ok: "Leave the collaborative session",
         disableDialog_exit: "Cancel",
     };
