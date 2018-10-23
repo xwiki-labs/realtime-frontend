@@ -34,21 +34,49 @@ define([
         LOCALSTORAGE_DISALLOW = key;
     };
 
+    /*
+        This hides a DIFFERENT autosave, not the one included in the realtime
+        This is a checkbox which is off by default. We hide it so that it can't
+        be turned on, because that would cause some problems.
+    */
+    var setAutosaveHiddenState = function (hidden) {
+        var elem = $('#autosaveControl');
+        if (hidden) {
+            elem.hide();
+        } else {
+            elem.show();
+        }
+    };
+    // Stub for old versions
+    Interface.setAutosaveHiddenState = function () {};
+
+    var allowed = false;
     var realtimeAllowed = Interface.realtimeAllowed = function (bool) {
         if (typeof bool === 'undefined') {
-            var disallow = localStorage.getItem(LOCALSTORAGE_DISALLOW);
+            /*var disallow = localStorage.getItem(LOCALSTORAGE_DISALLOW);
             if (disallow) {
                 return false;
             } else {
                 return true;
-            }
+            }*/
+            return allowed;
         } else {
-            localStorage.setItem(LOCALSTORAGE_DISALLOW, bool? '' : 1);
+            //localStorage.setItem(LOCALSTORAGE_DISALLOW, bool? '' : 1);
+            allowed = bool;
+            setAutosaveHiddenState(bool);
             return bool;
         }
     };
 
     var createAllowRealtimeCheckbox = Interface.createAllowRealtimeCheckbox = function (id, checked, message) {
+        $('head').append([
+            '<style>',
+            '.realtime-allow-outerdiv {',
+            '    display: inline;',
+            '    white-space: nowrap;',
+            '}',
+            '</style>'
+         ].join(''));
         $('.buttons').append(
             '<div class="realtime-allow-outerdiv">' +
                 '<label class="realtime-allow-label" for="' + id + '">' +
@@ -58,20 +86,6 @@ define([
                 '</label>' +
             '</div>'
         );
-    };
-
-    /*
-        This hides a DIFFERENT autosave, not the one included in the realtime
-        This is a checkbox which is off by default. We hide it so that it can't
-        be turned on, because that would cause some problems.
-    */
-    var setAutosaveHiddenState = Interface.setAutosaveHiddenState = function (hidden) {
-        var elem = $('#autosaveControl');
-        if (hidden) {
-            elem.hide();
-        } else {
-            elem.show();
-        }
     };
 
     /*  TODO

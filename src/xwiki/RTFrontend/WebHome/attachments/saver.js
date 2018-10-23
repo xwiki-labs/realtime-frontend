@@ -1,12 +1,10 @@
 define([
     'RTFrontend_realtime_input',
-    'RTFrontend_text_patcher',
     'RTFrontend_errorbox',
     'jquery',
     'RTFrontend_crypto',
-    'RTFrontend_json_ot',
     'json.sortify'
-], function (realtimeInput, TextPatcher, ErrorBox, $, Crypto, JsonOT, stringify) {
+], function (realtimeInput, ErrorBox, $, Crypto, stringify) {
     var warn = function (x) {};
     var debug = function (x) {};
     // there was way too much noise, if you want to know everything use verbose
@@ -613,6 +611,9 @@ define([
             // callbacks for different use cases
             var saveFinalizer = function (e, shouldSave) {
                 var toSave = mainConfig.getTextValue();
+                if (toSave === null) {
+                    e = "Unable to get the content of the document. Don't save.";
+                }
                 if (e) {
                     warn(e);
                     return;
@@ -652,6 +653,11 @@ define([
                 lastSaved.receivedISAVE = false;
 
                 var toSave = mainConfig.getTextValue();
+                if (toSave === null) {
+                    warn("Unable to get the content of the document. Don't save.");
+                    return;
+                }
+
                 if (lastSaved.content === toSave && !force ) {
                     verbose("No changes made since last save. "+
                         "Avoiding unnecessary commits");
@@ -825,21 +831,17 @@ define([
             if (mainConfig.initializing) { return; }
 
             try {
-                var data = JSON.parse(module.realtime.getUserDoc());
+                var data = JSON.parse(module.chainpad.getUserDoc());
                 onMessage(data);
             } catch (e) {
                 warn("Unable to parse realtime data from the saver", e);
             }
         };
         var onReady = rtConfig.onReady = function (info) {
-            var realtime = module.realtime = info.realtime;
+            module.chainpad = info.realtime;
             module.leave = mainConfig.leaveChannel = info.leave;
-            module.patchText = TextPatcher.create({
-                realtime: realtime,
-                logging: 'false'
-            });
             try {
-                var data = JSON.parse(module.realtime.getUserDoc());
+                var data = JSON.parse(module.chainpad.getUserDoc());
                 onMessage(data);
             } catch (e) {
                 warn("Unable to parse realtime data from the saver", e);
@@ -850,8 +852,8 @@ define([
         var onLocal = rtConfig.onLocal = mainConfig.onLocal = function (info) {
             if (mainConfig.initializing) { return; }
             var sjson = stringify(rtData);
-            module.patchText(sjson);
-            if (module.realtime.getUserDoc() !== sjson) {
+            module.chainpad.contentUpdate(sjson);
+            if (module.chainpad.getUserDoc() !== sjson) {
                 warn("Saver: userDoc !== sjson");
             }
         };
