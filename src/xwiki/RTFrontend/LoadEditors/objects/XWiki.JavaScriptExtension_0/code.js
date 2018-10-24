@@ -8,6 +8,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     DEMO_MODE = (DEMO_MODE === true || DEMO_MODE === "true") ? true : false;
     var DEFAULT_LANGUAGE = "$xwiki.getXWikiPreference('default_language')";
     var LOCALSTORAGE_DISALLOW = 'realtime-disallow';
+    #foreach($e in $services.extension.installed.getInstalledExtensions())
+        #if ($e.toString().contains("realtime-netflux-frontend"))
+            var extVersion = "$e.toString().split('/').get(1)";
+        #end
+    #end
+
     //var ADVANCED_USER = "$!isAdvancedUser";
     var ADVANCED_USER = true;
     var MESSAGES = module.messages = {
@@ -226,7 +232,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     }
     if (!language || language === '') { language = 'default'; } //language = DEFAULT_LANGUAGE; ?
 
-    for (var path in PATHS) { PATHS[path] = PATHS[path].replace(/\.js$/, ''); }
+    for (var path in PATHS) {
+        PATHS[path] = PATHS[path].replace(/\.js$/, '');
+        PATHS[path] += (PATHS[path].indexOf('?') === -1 ? '?' : '&') + 'v=' + extVersion;
+    }
 
     require.config({
         paths:PATHS
