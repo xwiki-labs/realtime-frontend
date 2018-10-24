@@ -600,8 +600,17 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return ret;
     };
 
+    var unload = false;
+    window.addEventListener('beforeunload', function () {
+        unload = true;
+        setTimeout(function () {
+            unload = false;
+        }, 5000);
+    });
+
     var warningVisible = false;
     var displayWarning = function () {
+        if (unload) { return; }
         if (warningVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
@@ -625,6 +634,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }
     };
     var displayWsWarning = function (isError) {
+        if (unload) { return; }
         if (warningVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
@@ -647,6 +657,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
     var connectingVisible = false;
     var displayConnecting = function () {
+        if (unload) { return; }
         if (connectingVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
@@ -662,6 +673,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
     var wsErrorVisible = false;
     var displayWsError = function () {
+        if (unload) { return; }
         if (wsErrorVisible) { return; }
         var $after = $('#hierarchy');
         if (!$after.length) { return; }
