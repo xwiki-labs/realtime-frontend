@@ -832,6 +832,9 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                     res.state = state ? 1 : 0;
                     return void wc.bcast(JSON.stringify(res));
                 });
+                setTimeout(function () {
+                    $('.xdialog-modal-container').css('z-index', '99999');
+                });
                 return void displayCustomModal(content);
             }
             // Receiving an answer to a realtime session request
