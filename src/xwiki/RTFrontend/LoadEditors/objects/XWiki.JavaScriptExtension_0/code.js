@@ -608,16 +608,66 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }, 5000);
     });
 
+    var fullScreen = false;
+    if ($('body').attr('data-maximized') || $('html').attr('style')) {
+        fullScreen = true;
+    }
+
+    // Trigger a resize event to resize the editable area in fullscreen mode
+    var resize = function () {
+        window.dispatchEvent(new Event('resize'));
+    };
+
+    // PLace the warning box at the correct position when in fullscreen mode
+    var getBoxPosition = function () {
+        return fullScreen ? $('.buttons') : $('#hierarchy');
+    };
+    var moveBox = function () {
+        $('.xwiki-realtime-box').insertAfter(getBoxPosition()).show();
+        $('.xwiki-realtime-box').css('margin-bottom', fullScreen ? '0' : '');
+        resize();
+    };
+
+    // Detect fullscreen mode in ckeditor
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            if (m.type === "attributes" && m.attributeName === "data-maximized") {
+                var value = $('body').attr('data-maximized') === "true";
+                fullScreen = value;
+                moveBox();
+            }
+        });
+    });
+    observer.observe($('body')[0], {
+        attributes: true
+    });
+    // Detect fullscreen mode in wiki editor
+    document.observe('xwiki:fullscreen:exited', function () {
+        fullScreen = false;
+        moveBox();
+    });
+    document.observe('xwiki:fullscreen:entered', function () {
+        fullScreen = true;
+        moveBox();
+    });
+
+    // Scroll to the warning box when a message is displayed or updated
+    var scrollToBox = function ($box) {
+        moveBox();
+        $box[0].scrollIntoView();
+    };
+
     var warningVisible = false;
     var displayWarning = function () {
         if (unload) { return; }
         if (warningVisible) { return; }
-        var $after = $('#hierarchy');
+        var $after = getBoxPosition();
         if (!$after.length) { return; }
         warningVisible = true;
         var $warning = $('<div>', {
-            'class': 'xwiki-realtime-warning box warningmessage'
+            'class': 'xwiki-realtime-warning xwiki-realtime-box box warningmessage'
         }).insertAfter($after);
+        scrollToBox($warning);
         $('<strong>').text(MESSAGES.conflictsWarning).appendTo($warning);
         $('<br>').appendTo($warning);
         $('<span>').text(MESSAGES.wsErrorConflicts).appendTo($warning);
@@ -636,13 +686,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var displayWsWarning = function (isError) {
         if (unload) { return; }
         if (warningVisible) { return; }
-        var $after = $('#hierarchy');
+        var $after = getBoxPosition();
         if (!$after.length) { return; }
         warningVisible = true;
         var type = isError ? 'errormessage' : 'warningmessage';
         var $warning = $('<div>', {
-            'class': 'xwiki-realtime-warning box ' + type
+            'class': 'xwiki-realtime-warning xwiki-realtime-box box ' + type
         }).insertAfter($after);
+        scrollToBox($warning);
         $('<strong>').text(MESSAGES.wsError).appendTo($warning);
         $('<br>').appendTo($warning);
         $('<span>').text(MESSAGES.wsErrorInfo).appendTo($warning);
@@ -659,12 +710,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var displayConnecting = function () {
         if (unload) { return; }
         if (connectingVisible) { return; }
-        var $after = $('#hierarchy');
+        var $after = getBoxPosition();
         if (!$after.length) { return; }
         connectingVisible = true;
         var $warning = $('<div>', {
-            'class': 'xwiki-realtime-connecting box infomessage'
+            'class': 'xwiki-realtime-connecting xwiki-realtime-box box infomessage'
         }).insertAfter($after);
+        scrollToBox($warning);
         $('<strong>').text(MESSAGES.connectingBox).appendTo($warning);
     };
     var hideConnecting = function () {
@@ -675,12 +727,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var displayWsError = function () {
         if (unload) { return; }
         if (wsErrorVisible) { return; }
-        var $after = $('#hierarchy');
+        var $after = getBoxPosition();
         if (!$after.length) { return; }
         wsErrorVisible = true;
         var $warning = $('<div>', {
-            'class': 'xwiki-realtime-disconnected box errormessage'
+            'class': 'xwiki-realtime-disconnected xwiki-realtime-box box errormessage'
         }).insertAfter($after);
+        scrollToBox($warning);
         $('<strong>').text(MESSAGES.connectionLost).appendTo($warning);
         $('<br>').appendTo($warning);
         $('<span>').text(MESSAGES.connectionLostInfo).appendTo($warning);
