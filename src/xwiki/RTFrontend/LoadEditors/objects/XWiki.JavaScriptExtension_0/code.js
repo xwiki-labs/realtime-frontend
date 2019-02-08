@@ -48,12 +48,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             "Which session do you want to join?",
         redirectDialog_join: "Join the realtime {0} session",
         redirectDialog_create: "Request a new realtime {0} session",
+        redirectDialog_autoForce: "If this user doesn't answer, the document will be automatically unlocked in ",
 
         waiting: "Waiting for an answer",
         requestASession: "The document is locked by another user. Do you want to request a collaborative session?",
         requestDialog_prompt: "Someone wants to edit this document with you. Would you like to create a collaborative session?",
         requestDialog_create: "Save and create a {0} collaborative session",
         requestDialog_reject: "Stay offline and keep the document locked",
+        requestDialog_autoAccept: "Without action on your part, a collaborative session will be created in ",
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
         rejectDialog_OK: 'OK',
         conflictsWarning: 'Multiple users are editing this document concurrently.',
@@ -109,12 +111,14 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             "Quelle session voulez-vous rejoindre ?",
         redirectDialog_join: "Rejoindre la session {0}",
         redirectDialog_create: "Demander une nouvelle session {0}",
+        redirectDialog_autoForce: "Sans réponse de cet utilisateur, le document sera dévérouillé dans ",
 
         waiting: "En attente d'une réponse...",
         requestASession: "Le document est verrouillé par un autre utilisateur. Souhaitez-vous demander une session collaborative ?",
         requestDialog_prompt: "Un autre utilisateur souhaite modifier ce document. Acceptez-vous de créer une session collaborative ?",
         requestDialog_create: "Sauver et créer une session {0} collaborative",
         requestDialog_reject: "Garder le document verrouillé",
+        requestDialog_autoAccept: "Sans action de votre part, une session collaborative sera créée dans ",
         rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
         rejectDialog_OK: 'OK',
         conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
@@ -504,20 +508,38 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         content.insert(buttonsDiv);
 
         // Create new session button
-        var br = new Element('br');
+        var it;
         var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
         buttonCreate.insert(MESSAGES.requestDialog_create.replace(/\{0\}/g, info.name));
         $(buttonCreate).on('click', function() {
+            clearInterval(it);
             callback(true);
         });
         var buttonReject =  new Element('button', {'class': 'btn btn-danger'});
         buttonReject.insert(MESSAGES.requestDialog_reject);
         $(buttonReject).on('click', function() {
+            clearInterval(it);
             callback(false);
         });
-        buttonsDiv.insert(br);
+        var autoAccept = new Element('div');
+        buttonsDiv.insert(new Element('br'));
         buttonsDiv.insert(buttonCreate);
         buttonsDiv.insert(buttonReject);
+        buttonsDiv.insert(new Element('br'));
+        buttonsDiv.insert(autoAccept);
+
+        // Initialize auto-accept
+        var i = 30;
+        var it = setInterval(function () {
+            i--;
+            autoAccept.innerHTML = "<br>" + MESSAGES.requestDialog_autoAccept + i+"s";
+            if (i <= 0) {
+                $(buttonCreate).click();
+                clearInterval(it);
+                $(autoAccept).remove();
+            }
+        }, 1000);
+
         return content;
     };
 
@@ -816,6 +838,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             if (data.cmd === "answer") {
                 if (!allRt.request) { return; }
                 var state = data.state;
+                allRt.request(state);
                 if (state === -1) { return void ErrorBox.show('unavailable'); }
                 if (state === 0) {
                     // Rejected
@@ -827,7 +850,6 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                     }
                     return void displayCustomModal(getRejectContent());
                 }
-                return void allRt.request(state);
             }
             // Someone is joining the channel while we're editing, check if they
             // are using realtime and if we are
