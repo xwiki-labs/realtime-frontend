@@ -77,6 +77,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         disableDialog_prompt: "You are about to leave the collaborative session. If other users are still editing the document, you risk losing content. Do you want to continue?",
         disableDialog_ok: "Leave the collaborative session",
         disableDialog_exit: "Cancel",
+
+        versionDialog_prompt: "The document has been modified since you last saved it. Please copy your changes and reload the page to get the latest version.",
+        versionDialog_old: "Your version: ",
+        versionDialog_latest: "Latest version: ",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -141,6 +145,10 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         disableDialog_prompt: "Vous êtes sur le point de quitter la session collaborative. Si d'autres utilisateurs sont encore présents et effectuent des modifications, vous risquez de perdre des données. Souhaitez-vous continuer ?",
         disableDialog_ok: "Quitter la session collaborative",
         disableDialog_exit: "Annuler",
+
+        versionDialog_prompt: "Le document a été modifié depuis votre dernière sauvegarde. Veuillez copier vos dernières modifications et recharger la page pour obtenir la dernière version.",
+        versionDialog_old: "Votre version : ",
+        versionDialog_latest: "Dernière version : ",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
@@ -290,6 +298,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         state: false
     };
 
+    var ajaxVersionUrl = "$xwiki.getURL('RTFrontend.Version','get')";
     var getConfig = module.getConfig = function () {
         // Username === <USER>-encoded(<PRETTY_USER>)%2d<random number>
         var userName = USER + '-' + encodeURIComponent(PRETTY_USER + '-').replace(/-/g, '%2d') +
@@ -298,7 +307,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return {
             saverConfig: {
                 ajaxMergeUrl: "$xwiki.getURL('RTFrontend.Ajax','get')",
-                ajaxVersionUrl: "$xwiki.getURL('RTFrontend.Version','get')",
+                ajaxVersionUrl: ajaxVersionUrl,
                 messages: MESSAGES,
                 language: language,
                 version: version
@@ -579,6 +588,26 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return content;
     };
 
+    var getVersionContent = function (old, latest) {
+        var content =  new Element('div', {'class': 'modal-popup'});
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        content.insert(MESSAGES.versionDialog_prompt);
+        content.insert(new Element('br'));
+        content.insert(new Element('br'));
+        content.insert(MESSAGES.versionDialog_old + " " + old);
+        content.insert(new Element('br'));
+        content.insert(MESSAGES.versionDialog_latest + " " + latest);
+        content.insert(buttonsDiv);
+
+        var br = new Element('br');
+        var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
+        buttonCreate.insert(MESSAGES.rejectDialog_OK);
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonCreate);
+        return content;
+    };
+
     module.displayDisableModal = function (cb) {
         var content =  new Element('div', {'class': 'modal-popup'});
         var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
@@ -772,6 +801,102 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             console.error("Cannot parse the message");
         }
     };
+
+    // Protect against overriding content saved by someone else
+    var saveButton = $('#mainEditArea').find('input[name="action_save"]');
+    var saveButton2 = $('#mainEditArea').find('input[name="action_saveandcontinue"]');
+
+    var getDocumentStatistics = function () {
+        var result = {
+            document: $('html').data('xwiki-document'),
+            language: language
+        };
+        return result;
+    };
+    var checkVersion = function (cb) {
+        var url = ajaxVersionUrl + '?xpage=plain';
+        var stats = getDocumentStatistics();
+        $.ajax({
+            url: url,
+            method: 'POST',
+            dataType: 'json',
+            success: function (data) {
+                cb(null, data);
+            },
+            data: stats,
+            error: function (err) {
+                cb(err, null);
+            }
+        });
+    };
+    var editForm = $('#edit').length ? $('#edit') : $('#inline');
+    var shouldRedirect = false;
+    var save = function (cont) {
+        shouldRedirect = !cont;
+        document.fire('xwiki:actions:save', {
+            form: editForm[0],
+            continue: 1
+        });
+    };
+    document.observe('xwiki:document:saved', function (e) {
+        checkVersion(function (err, data) {
+            if (err) { return; }
+            if (data && data.version) {
+                version = data.version;
+            }
+        });
+        if (!shouldRedirect) { return; }
+        // CkEditor tries to block the user from leaving the page with unsaved content.
+        // Our save mechanism doesn't update the flag about unsaved content, so we have
+        // to do it manually
+        if (CKEDITOR) {
+            try {
+                CKEDITOR.instances.content.resetDirty();
+            } catch (e) {}
+        }
+        window.location.href = window.XWiki.currentDocument.getURL('view');
+    });
+    var saveRoutine = function (cont) {
+        checkVersion(function (err, data) {
+            if (err) {
+                // Save if we can't check the version
+                console.error(err);
+                return void save(cont);
+            }
+            var newVersion = data.version;
+            if (newVersion !== version) {
+                if ($('.CodeMirror')[0]) {
+                    try {
+                        $('.CodeMirror')[0].CodeMirror.setOption('readOnly', true);
+                    } catch (e) {}
+                } else if (window.CKEDITOR) {
+                    try {
+                        CKEDITOR.instances.content.setReadOnly();
+                    } catch (e) {}
+                }
+                return void displayCustomModal(getVersionContent(version, newVersion));
+            }
+            save(cont);
+        });
+    };
+
+    // If we're in offline edit mode, replace the save actions to check the version first
+    if (editForm.length && !module.isRt && saveButton.length) {
+        saveButton[0].stopObserving();
+        saveButton.off('click').click(function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            saveRoutine(false);
+        });
+    }
+    if (editForm.length && !module.isRt && saveButton2.length) {
+        saveButton2[0].stopObserving();
+        saveButton2.off('click').click(function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            saveRoutine(true);
+        });
+    }
 
     // Join a channel with all users on this page (realtime, offline AND lock page)
     // 1. This channel allows users on "lock" page to contact the editing user
