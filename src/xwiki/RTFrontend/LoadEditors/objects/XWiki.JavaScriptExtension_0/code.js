@@ -526,13 +526,17 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         buttonCreate.insert(MESSAGES.requestDialog_create.replace(/\{0\}/g, info.name));
         $(buttonCreate).on('click', function() {
             clearInterval(it);
-            callback(true);
+            try {
+                callback(true);
+            } catch (e) { console.error(e); }
         });
         var buttonReject =  new Element('button', {'class': 'btn btn-danger'});
         buttonReject.insert(MESSAGES.requestDialog_reject);
         $(buttonReject).on('click', function() {
             clearInterval(it);
-            callback(false);
+            try {
+                callback(false);
+            } catch (e) { console.error(e); }
         });
         var autoAccept = new Element('div');
         buttonsDiv.insert(new Element('br'));
