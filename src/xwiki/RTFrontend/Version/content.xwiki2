@@ -6,6 +6,7 @@
 #set ($translatedDocument = $currentDoc.getTranslatedDocument($language))
 
 #set ($currentVersion = $translatedDocument.getVersion())
+#set ($currentVersionTime = $translatedDocument.getDate().getTime())
 #set ($isNew = $translatedDocument.isNew())
 #set ($content = $translatedDocument.content)
 
@@ -15,6 +16,7 @@
 #if ($language != "default" && $translatedDocument.locale != $language)
     #set ($isNew = true)
     #set ($currentVersion = "1.1")
+    #set ($currentVersionTime = "0")
     #set ($content = "")
 #end
 
@@ -23,6 +25,7 @@
 #set ($mymap["isNew"] = $isNew)
 
 #set ($mymap["version"] = $currentVersion)
+#set ($mymap["versionTime"] = $currentVersionTime)
 
 #set ($mymap["content"] = $content)
 

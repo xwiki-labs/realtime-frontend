@@ -81,6 +81,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         versionDialog_prompt: "The document has been modified since you last saved it. Please copy your changes and reload the page to get the latest version.",
         versionDialog_old: "Your version: ",
         versionDialog_latest: "Latest version: ",
+        versionDialog_link: "View differences",
 
         autoAcceptSave: "Auto-save when switching to a collaborative session",
     };
@@ -151,6 +152,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         versionDialog_prompt: "Le document a été modifié depuis votre dernière sauvegarde. Veuillez copier vos dernières modifications et recharger la page pour obtenir la dernière version.",
         versionDialog_old: "Votre version : ",
         versionDialog_latest: "Dernière version : ",
+        versionDialog_link: "Voir les différences",
 
         autoAcceptSave: "Sauvegarde automatique lors du passage à une session collaborative",
       };
@@ -233,12 +235,13 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
     var documentReference = xm.documentReference ? xm.documentReference+'' : xm.wiki+':'+xm.document;
 
-    var language, version;
+    var language, version, versionTime;
     var languageSelector = $('#realtime-frontend-getversion');
     if (languageSelector.length) {
         var json = JSON.parse($(languageSelector).html());
         language = json.locale;
         version = json.version;
+        versionTime = json.time;
     }
     else {
         console.log("WARNING : unable to get the language and version number from the UIExtension. Using the old method to get them.");
@@ -596,16 +599,28 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return content;
     };
 
-    var getVersionContent = function (old, latest) {
+    var getVersionContent = function (old, oldTime, latest, latestTime) {
         var content =  new Element('div', {'class': 'modal-popup'});
         var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        var o = Number(oldTime);
+        if (o) { o =  " - " + new Date(o).toLocaleString(); }
+        var l = Number(latestTime);
+        if (l) { l = " - " + new Date(l).toLocaleString(); }
+
 
         content.insert(MESSAGES.versionDialog_prompt);
         content.insert(new Element('br'));
         content.insert(new Element('br'));
-        content.insert(MESSAGES.versionDialog_old + " " + old);
+        content.insert(MESSAGES.versionDialog_old + " " + old + o);
         content.insert(new Element('br'));
-        content.insert(MESSAGES.versionDialog_latest + " " + latest);
+        content.insert(MESSAGES.versionDialog_latest + " " + latest + l);
+        content.insert(new Element('br'));
+        var a = new Element('a');
+        a.setAttribute('target', '_blank');
+        a.setAttribute('href', XWiki.currentDocument.getURL("view", "viewer=changes&rev1="+old+"&rev2="+latest));
+        a.innerHTML = MESSAGES.versionDialog_link;
+        content.insert(a);
         content.insert(buttonsDiv);
 
         var br = new Element('br');
@@ -851,6 +866,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             if (err) { return; }
             if (data && data.version) {
                 version = data.version;
+                versionTime = data.versionTime;
             }
         });
         if (!shouldRedirect) { return; }
@@ -872,6 +888,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 return void save(cont);
             }
             var newVersion = data.version;
+            var newVersionTime = data.versionTime;
             if (newVersion !== version) {
                 if ($('.CodeMirror')[0]) {
                     try {
@@ -882,7 +899,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         CKEDITOR.instances.content.setReadOnly();
                     } catch (e) {}
                 }
-                return void displayCustomModal(getVersionContent(version, newVersion));
+                return void displayCustomModal(getVersionContent(version, versionTime, newVersion, newVersionTime));
             }
             save(cont);
         });
