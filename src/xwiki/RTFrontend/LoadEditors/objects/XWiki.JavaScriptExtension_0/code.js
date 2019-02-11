@@ -81,6 +81,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         versionDialog_prompt: "The document has been modified since you last saved it. Please copy your changes and reload the page to get the latest version.",
         versionDialog_old: "Your version: ",
         versionDialog_latest: "Latest version: ",
+
+        autoAcceptSave: "Auto-save when switching to a collaborative session",
     };
     if (document.documentElement.lang==="fr") {
       MESSAGES = module.messages = {
@@ -149,6 +151,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         versionDialog_prompt: "Le document a été modifié depuis votre dernière sauvegarde. Veuillez copier vos dernières modifications et recharger la page pour obtenir la dernière version.",
         versionDialog_old: "Votre version : ",
         versionDialog_latest: "Dernière version : ",
+
+        autoAcceptSave: "Sauvegarde automatique lors du passage à une session collaborative",
       };
     }
     #set ($document = $xwiki.getDocument('RTFrontend.WebHome'))
