@@ -56,6 +56,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_create: "Save and create a {0} collaborative session",
         requestDialog_reject: "Stay offline and keep the document locked",
         requestDialog_autoAccept: "Without action on your part, a collaborative session will be created in ",
+        requestDialog_saveError: "We were unable to save. Your request to join the collaborative session has been cancelled.",
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
         rejectDialog_OK: 'OK',
         conflictsWarning: 'Multiple users are editing this document concurrently.',
@@ -126,6 +127,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_create: "Sauver et créer une session {0} collaborative",
         requestDialog_reject: "Garder le document verrouillé",
         requestDialog_autoAccept: "Sans action de votre part, une session collaborative sera créée dans ",
+        requestDialog_saveError: "Nous n'avons pas pu sauver le document. Vous n'avez donc pas rejoint la session collaborative.",
         rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
         rejectDialog_OK: 'OK',
         conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
@@ -629,6 +631,25 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         buttonsDiv.insert(br);
         buttonsDiv.insert(buttonCreate);
         return content;
+    };
+
+    var getSaveErrorContent = function () {
+        var content =  new Element('div', {'class': 'modal-popup'});
+        var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
+
+        content.insert(MESSAGES.requestDialog_saveError);
+        content.insert(new Element('br'));
+        content.insert(buttonsDiv);
+
+        var br = new Element('br');
+        var buttonCreate = new Element('button', {'class': 'btn btn-primary'});
+        buttonCreate.insert(MESSAGES.rejectDialog_OK);
+        buttonsDiv.insert(br);
+        buttonsDiv.insert(buttonCreate);
+        return content;
+    };
+    module.displayRequestErrorModal = function () {
+        displayCustomModal(getSaveErrorContent());
     };
 
     module.displayDisableModal = function (cb) {
