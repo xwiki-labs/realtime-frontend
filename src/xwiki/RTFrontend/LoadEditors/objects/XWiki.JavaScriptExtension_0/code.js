@@ -58,6 +58,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_autoAccept: "Without action on your part, a collaborative session will be created in ",
         requestDialog_saveError: "We were unable to save. Your request to join the collaborative session has been cancelled.",
         rejectDialog_prompt: "Your request has been rejected. You can wait for the document to be unlocked. If you force the lock, you risk losing content.",
+        rejectDialog_invalid: "Collaborative editing is not available for the user in the document. Your request has been automatically rejected. Please wait for the document to be unlocked.",
         rejectDialog_OK: 'OK',
         conflictsWarning: 'Multiple users are editing this document concurrently.',
         conflictsWarningInfoRt: 'You can avoid these problems if they join the collaborative session.',
@@ -129,6 +130,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         requestDialog_autoAccept: "Sans action de votre part, une session collaborative sera créée dans ",
         requestDialog_saveError: "Nous n'avons pas pu sauver le document. Vous n'avez donc pas rejoint la session collaborative.",
         rejectDialog_prompt: "Votre demande a été refusée. Vous pouvez attendre que le document soit déverrouillé. Si vous forcez l'édition, you risquez de perdre du contenu.",
+        rejectDialog_invalid: "L'édition collaborative n'est pas disponible pour l'utilisateur dans le document. Votre demande a été refusée automatiquement. Veuillez attendre que le document soit déverrouillé.",
         rejectDialog_OK: 'OK',
         conflictsWarning: "Plusieurs utilisateurs modifient ce document en même temps.",
         conflictsWarningInfo: "Vous pouvez éviter ces problèmes s'ils rejoingnent la session collaborative.",
@@ -565,11 +567,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         return content;
     };
 
-    var getRejectContent = function () {
+    var getRejectContent = function (reason) {
         var content =  new Element('div', {'class': 'modal-popup'});
         var buttonsDiv =  new Element('div', {'class': 'realtime-buttons'});
 
-        content.insert(MESSAGES.rejectDialog_prompt);
+        content.insert(reason === 'invalid' ? MESSAGES.rejectDialog_invalid
+                                            : MESSAGES.rejectDialog_prompt);
         content.insert(buttonsDiv);
 
         var br = new Element('br');
@@ -992,6 +995,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 // i.e. Object editor can't switch to wysiwyg
                 if (!isEditorCompatible()) {
                     res.state = 0;
+                    res.reason = 'invalid';
                     return void wc.bcast(JSON.stringify(res));
                 }
                 // We're editing offline: display the modal
@@ -1022,7 +1026,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                             m.closeDialog();
                         }
                     }
-                    return void displayCustomModal(getRejectContent());
+                    return void displayCustomModal(getRejectContent(data.reason));
                 }
             }
             // Someone is joining the channel while we're editing, check if they
