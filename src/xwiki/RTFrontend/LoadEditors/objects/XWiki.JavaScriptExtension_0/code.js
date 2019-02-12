@@ -852,6 +852,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     // Protect against overriding content saved by someone else
     var saveButton = $('#mainEditArea').find('input[name="action_save"]');
     var saveButton2 = $('#mainEditArea').find('input[name="action_saveandcontinue"]');
+    var previewButton = $('#mainEditArea').find('input[name="action_preview"]');
+
 
     var getDocumentStatistics = function () {
         var result = {
@@ -878,7 +880,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
     var editForm = $('#edit').length ? $('#edit') : $('#inline');
     var shouldRedirect = false;
-    var save = function (cont) {
+    var save = function (cont, preview) {
+        if (preview) {
+            previewButton.data('checked', true);
+            previewButton.click();
+            return;
+        }
         shouldRedirect = !cont;
         document.fire('xwiki:actions:save', {
             form: editForm[0],
@@ -904,12 +911,12 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         }
         window.location.href = window.XWiki.currentDocument.getURL('view');
     });
-    var saveRoutine = function (cont) {
+    var saveRoutine = function (cont, preview) {
         checkVersion(function (err, data) {
             if (err) {
                 // Save if we can't check the version
                 console.error(err);
-                return void save(cont);
+                return void save(cont, preview);
             }
             var newVersion = data.version;
             var newVersionTime = data.versionTime;
@@ -925,7 +932,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 }
                 return void displayCustomModal(getVersionContent(version, versionTime, newVersion, newVersionTime));
             }
-            save(cont);
+            save(cont, preview);
         });
     };
 
@@ -944,6 +951,20 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             ev.preventDefault();
             ev.stopPropagation();
             saveRoutine(true);
+        });
+    }
+
+    if (editForm.length && !module.isRt && previewButton.length) {
+        $(function () {
+            previewButton.click(function (ev) {
+                if (!previewButton.data('checked')) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    saveRoutine(null, true);
+                    return;
+                }
+                previewButton.data('checked', false);
+            });
         });
     }
 
