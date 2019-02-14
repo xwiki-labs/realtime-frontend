@@ -697,6 +697,7 @@ define([
                 .off('click')
                 .click(function (e) {
                     e.preventDefault();
+                    if ($(this).attr('disabled') === 'disabled') { return; }
                     // arg is 'shouldRedirect'
                     saveButtonAction (true);
                 });
@@ -707,6 +708,7 @@ define([
             $sac.off('click').click(function (e) {
                 e.preventDefault();
                 // should redirect?
+                if ($(this).attr('disabled') === 'disabled') { return; }
                 saveButtonAction(false);
             });
 
@@ -877,13 +879,19 @@ define([
         document.stopObserving('xwiki:document:saveFailed');
         // remove callbacks for the save and view button
         // the button will now submit the "Save and view" form
-        $('[name="action_save"]').off('click')
+        $('[name="action_save"]').off('click').click(function (e) {
+            if ($(this).attr('disabled') === 'disabled') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
 
         // replace callbacks for the save and continue button
         $('[name="action_saveandcontinue"]')
             .off('click')
             .click(function (e) {
                 e.preventDefault();
+                if ($(this).attr('disabled') === 'disabled') { return; }
                 // fire save event
                 document.fire('xwiki:actions:save', {
                     form: $('#'+mainConfig.formId)[0],
