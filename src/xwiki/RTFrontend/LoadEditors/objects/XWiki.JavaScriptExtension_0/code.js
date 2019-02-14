@@ -596,7 +596,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         var buttonReload = new Element('button', {'class': 'btn btn-default'});
         buttonReload.insert(MESSAGES.reloadDialog_reload);
         $(buttonReload).on('click', function() {
-            window.location.reload();
+            window.location.reload(true);
         });
         var buttonExit =  new Element('button', {'class': 'btn btn-primary'});
         buttonExit.insert(MESSAGES.reloadDialog_exit);
@@ -926,6 +926,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         CKEDITOR.instances.content.setReadOnly();
                     } catch (e) {}
                 }
+                sessionStorage.refreshCk = "true";
                 return void displayCustomModal(getVersionContent(old.version, old.versionTime, newVersion, newVersionTime));
             }
             cb(cont, preview);
@@ -1211,6 +1212,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         // The channel keys have changed while we were offline.
         // We may not have the latest version of the document.
         // The safest solution is to reload.
+        sessionStorage.refreshCk = "true";
         var content = getReloadContent();
         return void displayCustomModal(content);
     };
