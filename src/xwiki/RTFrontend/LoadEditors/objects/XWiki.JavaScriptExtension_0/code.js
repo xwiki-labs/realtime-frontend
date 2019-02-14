@@ -310,6 +310,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     };
 
     var ajaxVersionUrl = "$xwiki.getURL('RTFrontend.Version','get')";
+    var safeSave;
     var getConfig = module.getConfig = function () {
         // Username === <USER>-encoded(<PRETTY_USER>)%2d<random number>
         var userName = USER + '-' + encodeURIComponent(PRETTY_USER + '-').replace(/-/g, '%2d') +
@@ -321,7 +322,8 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 ajaxVersionUrl: ajaxVersionUrl,
                 messages: MESSAGES,
                 language: language,
-                version: version
+                version: version,
+                safeSave: safeSave
             },
             WebsocketURL: WEBSOCKET_URL,
             htmlConverterUrl: "$xwiki.getURL('RTFrontend.ConvertHTML','get')",
@@ -900,35 +902,21 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
             continue: 1
         });
     };
-    document.observe('xwiki:document:saved', function (e) {
-        checkVersion(function (err, data) {
-            if (err) { return; }
-            if (data && data.version) {
-                version = data.version;
-                versionTime = data.versionTime;
-            }
-        });
-        if (!shouldRedirect) { return; }
-        // CkEditor tries to block the user from leaving the page with unsaved content.
-        // Our save mechanism doesn't update the flag about unsaved content, so we have
-        // to do it manually
-        if (CKEDITOR) {
-            try {
-                CKEDITOR.instances.content.resetDirty();
-            } catch (e) {}
-        }
-        window.location.href = window.XWiki.currentDocument.getURL('view');
-    });
-    var saveRoutine = function (cont, preview) {
+    safeSave = function (cont, preview, old, cb) {
+        old = old || {
+            version: version,
+            versionTime: versionTime
+        };
+        cb = cb || save;
         checkVersion(function (err, data) {
             if (err) {
                 // Save if we can't check the version
                 console.error(err);
-                return void save(cont, preview);
+                return void cb(cont, preview);
             }
             var newVersion = data.version;
             var newVersionTime = data.versionTime;
-            if (newVersion !== version) {
+            if (newVersion !== old.version) {
                 if ($('.CodeMirror')[0]) {
                     try {
                         $('.CodeMirror')[0].CodeMirror.setOption('readOnly', true);
@@ -938,11 +926,33 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                         CKEDITOR.instances.content.setReadOnly();
                     } catch (e) {}
                 }
-                return void displayCustomModal(getVersionContent(version, versionTime, newVersion, newVersionTime));
+                return void displayCustomModal(getVersionContent(old.version, old.versionTime, newVersion, newVersionTime));
             }
-            save(cont, preview);
+            cb(cont, preview);
         });
     };
+
+    if (editForm.length && !module.isRt) {
+        document.observe('xwiki:document:saved', function (e) {
+            checkVersion(function (err, data) {
+                if (err) { return; }
+                if (data && data.version) {
+                    version = data.version;
+                    versionTime = data.versionTime;
+                }
+            });
+            if (!shouldRedirect) { return; }
+            // CkEditor tries to block the user from leaving the page with unsaved content.
+            // Our save mechanism doesn't update the flag about unsaved content, so we have
+            // to do it manually
+            if (CKEDITOR) {
+                try {
+                    CKEDITOR.instances.content.resetDirty();
+                } catch (e) {}
+            }
+            window.location.href = window.XWiki.currentDocument.getURL('view');
+        });
+    }
 
     // If we're in offline edit mode, replace the save actions to check the version first
     if (editForm.length && !module.isRt && saveButton.length) {
@@ -950,7 +960,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         saveButton.off('click').click(function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
-            saveRoutine(false);
+            safeSave(false);
         });
     }
     if (editForm.length && !module.isRt && saveButton2.length) {
@@ -958,7 +968,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         saveButton2.off('click').click(function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
-            saveRoutine(true);
+            safeSave(true);
         });
     }
 
@@ -968,7 +978,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
                 if (!previewButton.data('checked')) {
                     ev.preventDefault();
                     ev.stopPropagation();
-                    saveRoutine(null, true);
+                    safeSave(null, true);
                     return;
                 }
                 previewButton.data('checked', false);

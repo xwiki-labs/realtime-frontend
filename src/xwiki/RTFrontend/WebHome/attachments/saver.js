@@ -52,8 +52,10 @@ define([
         mainConfig.isHTML         = config.isHTML;
         mainConfig.mergeContent   = config.mergeContent;
         mainConfig.editorName     = config.editorName;
-        mainConfig.safeCrash     = function (reason) { warn(reason); };
+        mainConfig.safeCrash      = function (reason) { warn(reason); };
+        mainConfig.safeSave       = config.safeSave;
         lastSaved.version = config.version;
+        lastSaved.time = config.versionTime;
     };
 
     var updateLastSaved = Saver.update = function (content) {
@@ -666,9 +668,13 @@ define([
 
                 if (mainConfig.mergeContent) {
                     mergeRoutine(andThen);
-                }
-                else {
-                    andThen(null, true);
+                } else {
+                    mainConfig.safeSave(false, false, {
+                        version: lastSaved.version,
+                        versionTime: lastSaved.time
+                    }, function () {
+                        andThen(null, true);
+                    });
                 }
             }; // end saveRoutine
 
@@ -677,7 +683,7 @@ define([
 
                 // name this flag for readability
                 var force = true;
-                saveRoutine(function (e, shouldSave) {
+                saveRoutine(function (e) {
                     if (e) {
                         warn(e);
                         //return;
@@ -689,7 +695,7 @@ define([
                         form: $('#'+config.formId)[0],
                         continue: 1
                     });
-                }, force);
+                }, force, cont);
             };
 
             // replace callbacks for the save and view button
