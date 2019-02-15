@@ -286,7 +286,10 @@ define([
         };
         rtData[mainConfig.editorType] = newState;
         mainConfig.onLocal();
-        lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+
+        mainConfig.chainpad.onSettle(function () {
+            lastSaved.onReceiveOwnIsave && lastSaved.onReceiveOwnIsave();
+        });
     };
 
     var presentMergeDialog = function(question, labelDefault, choiceDefault, labelAlternative, choiceAlternative){
@@ -846,7 +849,7 @@ define([
             }
         };
         var onReady = rtConfig.onReady = function (info) {
-            module.chainpad = info.realtime;
+            module.chainpad = mainConfig.chainpad = info.realtime;
             module.leave = mainConfig.leaveChannel = info.leave;
             try {
                 var data = JSON.parse(module.chainpad.getUserDoc());
