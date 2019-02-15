@@ -411,8 +411,10 @@ define([
                                     // unset the merge dialog flag
                                     mergeDialogCurrentlyDisplayed = false;
                                     var restURL = XWiki.currentDocument.getRestURL();
-                                    if (typeof $('form#edit input[name=defaultLanguage]').val() === 'undefined') {
-                                      restURL = restURL + "/translations/" + $('form#edit input[name=language]').val()
+                                    if (mainConfig.language !== "default") {
+                                        if (!/\/pages\/(.+)\/translations\//.test(restURL)) {
+                                            restURL = restURL + mainConfig.language;
+                                        }
                                     }
 
                                     $.ajax({
