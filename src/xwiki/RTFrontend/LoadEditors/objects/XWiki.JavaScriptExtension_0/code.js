@@ -716,14 +716,16 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     // Trigger a resize event to resize the editable area in fullscreen mode
     var resize = function () {
         // Trigger a resize event to resize the editable area in fullscreen mode
-        var evy;
+        var evt;
         if (typeof(Event) === "function") {
             evt = new Event('resize');
         } else {
             evt = document.createEvent('Event');
             evt.initEvent('resize', true, true);
         }
-        window.dispatchEvent(evt);
+        setTimeout(function () {
+            window.dispatchEvent(evt);
+        });
     };
 
     // PLace the warning box at the correct position when in fullscreen mode
