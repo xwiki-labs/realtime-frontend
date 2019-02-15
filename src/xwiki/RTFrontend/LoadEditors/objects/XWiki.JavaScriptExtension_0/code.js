@@ -815,6 +815,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var hideWarning = function () {
         warningVisible = false;
         $('.xwiki-realtime-warning').remove();
+        resize();
     };
     var connectingVisible = false;
     var displayConnecting = function () {
@@ -832,6 +833,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var hideConnecting = function () {
         warningVisible = false;
         $('.xwiki-realtime-connecting').remove();
+        resize();
     };
     var wsErrorVisible = false;
     var displayWsError = function () {
@@ -851,6 +853,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     var hideWsError = function () {
         wsErrorVisible = false;
         $('.xwiki-realtime-disconnected').remove();
+        resize();
     };
 
     var tryParse = function (msg) {
