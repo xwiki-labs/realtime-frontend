@@ -1,4 +1,7 @@
-define(['jquery', 'xwiki-meta'], function($, xm) {
+define(['module', 'jquery', 'xwiki-meta'], function(mod, $, xm) {
+    if (!(mod && mod.uri && /&v=/.test(mod.uri))) {
+        return;
+    }
     var module = {};
     // VELOCITY
     var WEBSOCKET_URL = "$!services.websocket.getURL('realtimeNetflux')";
