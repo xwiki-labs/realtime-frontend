@@ -306,7 +306,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
     }
 
     var allRt = {
-        state: false
+        state: false
     };
 
     var ajaxVersionUrl = "$xwiki.getURL('RTFrontend.Version','get')";
@@ -420,7 +420,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
 
     var displayModal = module.displayModal = function(createType, existingTypes, callback, info) {
         if(XWiki.widgets.RealtimeCreateModal) { return; };
-        existingTypes = existingTypes || [];
+        existingTypes = existingTypes || [];
         XWiki.widgets.RealtimeCreateModal = Class.create(XWiki.widgets.ModalPopup, {
             /** Default parameters can be added to the custom class. */
             defaultInteractionParameters : {
@@ -772,7 +772,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (unload) { return; }
         if (warningVisible) { return; }
         var $after = getBoxPosition();
-        if (!$after.length) { return; }
+        if (!$after.length) { return; }
         warningVisible = true;
         var $warning = $('<div>', {
             'class': 'xwiki-realtime-warning xwiki-realtime-box box warningmessage'
@@ -797,7 +797,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (unload) { return; }
         if (warningVisible) { return; }
         var $after = getBoxPosition();
-        if (!$after.length) { return; }
+        if (!$after.length) { return; }
         warningVisible = true;
         var type = isError ? 'errormessage' : 'warningmessage';
         var $warning = $('<div>', {
@@ -822,7 +822,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (unload) { return; }
         if (connectingVisible) { return; }
         var $after = getBoxPosition();
-        if (!$after.length) { return; }
+        if (!$after.length) { return; }
         connectingVisible = true;
         var $warning = $('<div>', {
             'class': 'xwiki-realtime-connecting xwiki-realtime-box box infomessage'
@@ -840,7 +840,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         if (unload) { return; }
         if (wsErrorVisible) { return; }
         var $after = getBoxPosition();
-        if (!$after.length) { return; }
+        if (!$after.length) { return; }
         wsErrorVisible = true;
         var $warning = $('<div>', {
             'class': 'xwiki-realtime-disconnected xwiki-realtime-box box errormessage'
@@ -908,7 +908,7 @@ define(['jquery', 'xwiki-meta'], function($, xm) {
         });
     };
     safeSave = function (cont, preview, old, cb) {
-        old = old || {
+        old = old || {
             version: version,
             versionTime: versionTime
         };

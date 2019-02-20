@@ -25,7 +25,7 @@ define(function () {
     out.codeInitialState = [
         '\n'
     ].join('');
-  } else {
+  } else {
     out.errorBox_errorType_disconnected = 'Connection Lost';
     out.errorBox_errorExplanation_disconnected = [
         'Lost connection to server, you may reconnect by reloading the page or review your work ',
