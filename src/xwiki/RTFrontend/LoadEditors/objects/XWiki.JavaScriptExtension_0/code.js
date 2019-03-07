@@ -954,7 +954,7 @@ define(['module', 'jquery', 'xwiki-meta'], function(mod, $, xm) {
             // CkEditor tries to block the user from leaving the page with unsaved content.
             // Our save mechanism doesn't update the flag about unsaved content, so we have
             // to do it manually
-            if (CKEDITOR) {
+            if (window.CKEDITOR) {
                 try {
                     CKEDITOR.instances.content.resetDirty();
                 } catch (e) {}
