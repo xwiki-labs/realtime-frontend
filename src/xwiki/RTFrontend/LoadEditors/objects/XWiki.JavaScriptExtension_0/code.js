@@ -916,6 +916,8 @@ define(['module', 'jquery', 'xwiki-meta'], function(mod, $, xm) {
             versionTime: versionTime
         };
         cb = cb || save;
+        cb(cont, preview);
+        /*
         checkVersion(function (err, data) {
             if (err) {
                 // Save if we can't check the version
@@ -939,6 +941,7 @@ define(['module', 'jquery', 'xwiki-meta'], function(mod, $, xm) {
             }
             cb(cont, preview);
         });
+        */
     };
 
     if (editForm.length && !module.isRt) {

@@ -3,8 +3,9 @@ define([
     'RTFrontend_errorbox',
     'jquery',
     'RTFrontend_crypto',
-    'json.sortify'
-], function (realtimeInput, ErrorBox, $, Crypto, stringify) {
+    'json.sortify',
+    'xwiki-meta'
+], function (realtimeInput, ErrorBox, $, Crypto, stringify, xwikiMeta) {
     var warn = function (x) {};
     var debug = function (x) {};
     // there was way too much noise, if you want to know everything use verbose
@@ -353,6 +354,7 @@ define([
                         }
                     }
 
+
                     if (isaveInterrupt()) {
                         andThen("ISAVED interrupt", null);
                         return;
@@ -385,6 +387,10 @@ define([
                     // http://jira.xwiki.org/browse/RTWIKI-34
                     // Give Messages when merging
                     if (merge.merged) {
+                        // TODO update version field with merge.currentVersion
+                        console.log("Force updating version to: " + merge.currentVersion);
+                        if (xwikiMeta.setVersion)
+                            xwikiMeta.setVersion(merge.currentVersion);
                         // a merge took place
                         if (merge.error) {
                             // but there was a conflict we'll need to resolve.
@@ -441,6 +447,7 @@ define([
                             return; // escape from the save process
                             // when the merge dialog is answered it will continue
                         } else {
+
                             // it merged and there were no errors
                             if (preMergeContent !== mainConfig.getTextValue()) {
                                 /* but there have been changes since merging
@@ -567,6 +574,8 @@ define([
             if (typeof data[editor] !== "object" || Object.keys(data[editor]).length !== 4) { continue; } // corrupted data
             if (rtData[editor] && stringify(rtData[editor]) === stringify(data[editor])) { continue; } // no change
             newSave(editor, data[editor]);
+            if (xwikiMeta.refreshVersion)
+              xwikiMeta.refreshVersion();
         }
         rtData = data;
 
@@ -784,8 +793,13 @@ define([
                     cUser: mainConfig.userName,
                     cContent: mainConfig.getTextValue()
                 }
-                ErrorBox.show('save', JSON.stringify(debugLog));
-                warn("save failed!!!");
+                if (ev.memo.response.status==409) {
+                 console.log("XWiki conflict system detected. No RT error box should be shown");
+                } else {
+                 ErrorBox.show('save', JSON.stringify(debugLog));
+                 warn("save failed!!!");
+                 console.log(ev);
+                }
             };
             document.stopObserving('xwiki:document:saveFailed');
             document.observe("xwiki:document:saveFailed", onSaveFailedHandler);

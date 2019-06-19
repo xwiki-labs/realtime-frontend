@@ -41,6 +41,7 @@
     #end
 ##
     #set ($mymap["latestVersion"] = $ancestorVersion)
+    #set ($mymap["currentVersion"] = $latestDocument.version)
     #set ($mymap["previousVersionContent"] = $latestDocument.getContent()) ##TODO : convert if needed
 ##
     ## if O == A
